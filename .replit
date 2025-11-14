@@ -29,3 +29,6 @@ args = "python scheduled_runner.py"
 
 [workflows.workflow.metadata]
 outputType = "console"
+
+[deployment]
+deploymentTarget = "cloudrun"
