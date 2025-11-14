@@ -8,14 +8,16 @@ import os
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from base_scraper import BaseScraper
-import undetected_chromedriver as uc
+from selenium import webdriver
+from selenium.webdriver.chrome.service import Service
+from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.common.exceptions import TimeoutException, NoSuchElementException
 import time
 import re
-import pickle
+import subprocess
 
 
 class RexelScraper(BaseScraper):
@@ -50,28 +52,39 @@ class RexelScraper(BaseScraper):
             raise ValueError("REXEL_USERNAME and REXEL_PASSWORD must be set in environment variables")
 
     def setup_driver(self):
-        """Setup headless Chrome driver using undetected-chromedriver"""
-        options = uc.ChromeOptions()
+        """Setup headless Chrome driver using Selenium"""
+        options = Options()
         options.add_argument('--headless=new')
         options.add_argument('--no-sandbox')
         options.add_argument('--disable-dev-shm-usage')
         options.add_argument('--disable-gpu')
+        options.add_argument('--disable-blink-features=AutomationControlled')
+        options.add_argument('--user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36')
         
-        # Find Chromium binary
-        import subprocess
+        # Find Chromium and ChromeDriver
         try:
             chromium_path = subprocess.check_output(['which', 'chromium']).decode().strip()
+            chromedriver_path = subprocess.check_output(['which', 'chromedriver']).decode().strip()
+            
             if chromium_path:
                 options.binary_location = chromium_path
                 print(f"  📍 Found Chromium at: {chromium_path}")
+            
+            if chromedriver_path:
+                print(f"  📍 Found ChromeDriver at: {chromedriver_path}")
+                service = Service(chromedriver_path)
+            else:
+                service = Service()
+                
         except subprocess.CalledProcessError:
-            print(f"  ⚠️ Chromium not found in PATH")
+            print(f"  ⚠️ Using default paths")
+            service = Service()
         
-        # Create undetected chromedriver instance
-        self.driver = uc.Chrome(options=options, version_main=138)
+        # Create Chrome driver instance
+        self.driver = webdriver.Chrome(service=service, options=options)
         self.driver.set_page_load_timeout(60)
         self.wait = WebDriverWait(self.driver, 20)
-        print(f"  🌐 Undetected ChromeDriver initialized")
+        print(f"  🌐 ChromeDriver initialized")
 
     def login(self):
         """Login to Rexel USA account"""
@@ -82,39 +95,108 @@ class RexelScraper(BaseScraper):
             login_url = "https://auth.rexelusa.com/login?returnUrl=/connect/authorize/callback?protocol=oauth2%26response_type=code%26access_type=offline%26client_id=storefront-web-v2%26redirect_uri=https%253A%252F%252Fwww.rexelusa.com%252Fcallback%26scope=sf.web%2520offline_access%26state=cWOoKHVuNpCne2b2SchKv%26code_challenge_method=S256%26banner=REXEL%26code_challenge=ZcDgZhNjZuYBqIqyMmX8wtITz4lcM63hXRBgyiHfYMQ"
             self.driver.get(login_url)
             
-            # Wait for login page to load
-            time.sleep(3)
+            # Wait for page to fully load
+            print(f"  ⏳ Waiting for login page to load...")
+            time.sleep(5)
             
-            # Find and fill username field
-            username_field = self.wait.until(
-                EC.presence_of_element_located((By.ID, "Input_Username"))
-            )
+            # Try different selectors for username field
+            username_field = None
+            username_selectors = [
+                (By.ID, "Input_Username"),
+                (By.NAME, "Input.Username"),
+                (By.CSS_SELECTOR, "input[type='text']"),
+                (By.CSS_SELECTOR, "input[name*='username' i]"),
+                (By.CSS_SELECTOR, "input[id*='username' i]")
+            ]
+            
+            for selector_type, selector_value in username_selectors:
+                try:
+                    username_field = self.wait.until(
+                        EC.presence_of_element_located((selector_type, selector_value))
+                    )
+                    print(f"  ✅ Found username field with: {selector_type}='{selector_value}'")
+                    break
+                except TimeoutException:
+                    continue
+            
+            if not username_field:
+                print(f"  ❌ Could not find username field")
+                print(f"  📄 Current URL: {self.driver.current_url}")
+                return False
+            
             username_field.clear()
             username_field.send_keys(self.username)
+            print(f"  ✅ Entered username")
             
-            # Find and fill password field
-            password_field = self.driver.find_element(By.ID, "Input_Password")
+            # Try different selectors for password field
+            password_field = None
+            password_selectors = [
+                (By.ID, "Input_Password"),
+                (By.NAME, "Input.Password"),
+                (By.CSS_SELECTOR, "input[type='password']"),
+                (By.CSS_SELECTOR, "input[name*='password' i]")
+            ]
+            
+            for selector_type, selector_value in password_selectors:
+                try:
+                    password_field = self.driver.find_element(selector_type, selector_value)
+                    print(f"  ✅ Found password field with: {selector_type}='{selector_value}'")
+                    break
+                except NoSuchElementException:
+                    continue
+            
+            if not password_field:
+                print(f"  ❌ Could not find password field")
+                return False
+            
             password_field.clear()
             password_field.send_keys(self.password)
+            print(f"  ✅ Entered password")
             
-            # Click login button
-            login_button = self.driver.find_element(By.CSS_SELECTOR, "button[type='submit']")
+            # Find and click login button
+            login_button = None
+            button_selectors = [
+                (By.CSS_SELECTOR, "button[type='submit']"),
+                (By.CSS_SELECTOR, "input[type='submit']"),
+                (By.CSS_SELECTOR, "button[class*='submit']"),
+                (By.XPATH, "//button[contains(text(), 'Sign') or contains(text(), 'Log')]")
+            ]
+            
+            for selector_type, selector_value in button_selectors:
+                try:
+                    login_button = self.driver.find_element(selector_type, selector_value)
+                    print(f"  ✅ Found login button with: {selector_type}='{selector_value}'")
+                    break
+                except NoSuchElementException:
+                    continue
+            
+            if not login_button:
+                print(f"  ❌ Could not find login button")
+                return False
+            
             login_button.click()
+            print(f"  ✅ Clicked login button")
             
             # Wait for redirect to main site
             print(f"  ⏳ Waiting for authentication...")
-            time.sleep(5)
+            time.sleep(8)
             
             # Check if we're redirected to the main site
-            if "rexelusa.com" in self.driver.current_url and "auth.rexelusa.com" not in self.driver.current_url:
-                print(f"  ✅ Successfully logged in!")
+            current_url = self.driver.current_url
+            if "rexelusa.com" in current_url and "auth.rexelusa.com" not in current_url:
+                print(f"  ✅ Successfully logged in! Redirected to: {current_url}")
                 return True
             else:
-                print(f"  ⚠️ Login may have failed. Current URL: {self.driver.current_url}")
+                print(f"  ⚠️ Login may have failed. Current URL: {current_url}")
+                # Check if still on auth page (might indicate wrong credentials)
+                if "auth.rexelusa.com" in current_url:
+                    print(f"  ⚠️ Still on authentication page - check credentials")
                 return False
                 
         except Exception as e:
             print(f"  ❌ Login error: {e}")
+            import traceback
+            print(f"  📋 Traceback: {traceback.format_exc()[:500]}")
             return False
 
     def wait_for_page_load(self):

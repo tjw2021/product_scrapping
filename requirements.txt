@@ -15,3 +15,5 @@ google-auth
 selenium
 webdriver-manager
 undetected-chromedriver
+selenium
+undetected-chromedriver
