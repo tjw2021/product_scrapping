@@ -138,16 +138,18 @@ class SheetsManager:
             worksheet = self.get_or_create_worksheet(distributor_name)
             worksheet.clear()
 
-            # Define headers
+            # Define headers with new columns
             headers = [
                 'Distributor',
-                'Product ID',
-                'SKU',
+                'Category',
                 'Product Title',
                 'Brand',
+                'SKU',
                 'Wattage',
                 'Efficiency',
-                'Price',
+                'Quantity',
+                'Total Price',
+                'Price Per Unit',
                 'Compare Price',
                 'Discount %',
                 'Stock Status',
@@ -155,12 +157,14 @@ class SheetsManager:
                 'Shipping Cost',
                 'Product URL',
                 'Image URL',
+                'Product ID',
                 'Last Updated'
             ]
 
             rows = [headers]
 
             for product in products:
+                # Calculate discount
                 discount = 0
                 if product.get('compare_price', 0) > 0:
                     discount = round(
@@ -168,15 +172,22 @@ class SheetsManager:
                         2
                     )
 
+                # Get quantity and calculate per-unit price
+                quantity = product.get('quantity', 1)
+                total_price = product.get('price', 0)
+                price_per_unit = product.get('price_per_unit', total_price)
+
                 row = [
                     product.get('distributor', 'N/A'),
-                    product.get('product_id', 'N/A'),
-                    product.get('sku', 'N/A'),
+                    product.get('category', 'N/A'),
                     product.get('title', 'N/A'),
                     product.get('brand', 'N/A'),
+                    product.get('sku', 'N/A'),
                     product.get('wattage', 'N/A'),
                     product.get('efficiency', 'N/A'),
-                    f"${product.get('price', 0):.2f}",
+                    quantity if quantity > 1 else '',
+                    f"${total_price:.2f}",
+                    f"${price_per_unit:.2f}" if quantity > 1 else '',
                     f"${product.get('compare_price', 0):.2f}" if product.get('compare_price', 0) > 0 else '',
                     f"{discount}%" if discount > 0 else '',
                     product.get('stock_status', 'Unknown'),
@@ -184,6 +195,7 @@ class SheetsManager:
                     product.get('shipping_cost', 'N/A'),
                     product.get('product_url', 'N/A'),
                     product.get('image_url', 'N/A'),
+                    product.get('product_id', 'N/A'),
                     product.get('last_updated', '')
                 ]
                 rows.append(row)
@@ -192,7 +204,7 @@ class SheetsManager:
             worksheet.update('A1', rows, value_input_option='USER_ENTERED')
 
             # Format headers
-            worksheet.format('A1:P1', {
+            worksheet.format('A1:S1', {
                 "textFormat": {"bold": True},
                 "backgroundColor": {"red": 0.2, "green": 0.5, "blue": 0.8},
                 "textFormat": {"foregroundColor": {"red": 1, "green": 1, "blue": 1}}
@@ -200,8 +212,11 @@ class SheetsManager:
 
             # Freeze header row
             worksheet.freeze(rows=1)
+            
+            # Auto-resize columns for better readability
+            worksheet.columns_auto_resize(0, len(headers) - 1)
 
-            print(f"  ✅ Successfully updated {distributor_name} tab")
+            print(f"  ✅ Successfully updated {distributor_name} tab with enhanced data")
 
         except Exception as e:
             print(f"  ❌ Error updating {distributor_name} tab: {e}")
