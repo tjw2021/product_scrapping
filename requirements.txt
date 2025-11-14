@@ -11,3 +11,7 @@ schedule==1.2.0
 # HTML Parsing (for advanced scraping if needed)
 beautifulsoup4==4.12.2
 lxml==4.9.3
+google-auth
+selenium
+webdriver-manager
+undetected-chromedriver
