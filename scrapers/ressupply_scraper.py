@@ -74,7 +74,7 @@ class RessupplyScraper(BaseScraper):
                     continue
             
             # Check if there's a next page
-            next_page = soup.find('a', text='>')
+            next_page = soup.find('a', string='>')
             if not next_page:
                 print(f"    ✅ Completed category. Total products: {len(products)}")
                 break
