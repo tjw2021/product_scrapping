@@ -5,8 +5,10 @@ Handles multi-tab spreadsheet operations for all distributors
 
 import gspread
 from oauth2client.service_account import ServiceAccountCredentials
+from google.oauth2.credentials import Credentials
 import json
 import os
+import requests
 from typing import List, Dict
 from datetime import datetime
 
@@ -20,27 +22,95 @@ class SheetsManager:
         self.spreadsheet = None
         self.connect()
 
+    def get_replit_credentials(self):
+        """Get OAuth credentials from Replit's Google Sheets connector"""
+        hostname = os.environ.get('REPLIT_CONNECTORS_HOSTNAME')
+        x_replit_token = None
+        
+        if os.environ.get('REPL_IDENTITY'):
+            x_replit_token = 'repl ' + os.environ.get('REPL_IDENTITY', '')
+        elif os.environ.get('WEB_REPL_RENEWAL'):
+            x_replit_token = 'depl ' + os.environ.get('WEB_REPL_RENEWAL', '')
+        
+        if not hostname or not x_replit_token:
+            return None
+        
+        try:
+            response = requests.get(
+                f'https://{hostname}/api/v2/connection?include_secrets=true&connector_names=google-sheet',
+                headers={
+                    'Accept': 'application/json',
+                    'X_REPLIT_TOKEN': x_replit_token
+                }
+            )
+            
+            if response.status_code == 200:
+                data = response.json()
+                items = data.get('items', [])
+                if items:
+                    settings = items[0].get('settings', {})
+                    oauth_data = settings.get('oauth', {})
+                    credentials_data = oauth_data.get('credentials', {})
+                    
+                    if credentials_data:
+                        return Credentials(
+                            token=credentials_data.get('access_token'),
+                            refresh_token=credentials_data.get('refresh_token'),
+                            token_uri='https://oauth2.googleapis.com/token',
+                            client_id=credentials_data.get('client_id'),
+                            client_secret=credentials_data.get('client_secret'),
+                            scopes=credentials_data.get('scopes')
+                        )
+                    
+                    access_token = settings.get('access_token')
+                    if access_token:
+                        return Credentials(token=access_token)
+                        
+        except Exception as e:
+            print(f"  ⚠️ Could not get Replit connector credentials: {e}")
+        
+        return None
+
     def connect(self):
         """Connect to Google Sheets using credentials"""
         try:
-            scope = [
-                'https://spreadsheets.google.com/feeds',
-                'https://www.googleapis.com/auth/drive'
-            ]
-
-            # Load credentials from environment variable or file
-            creds_json = os.environ.get('GOOGLE_CREDENTIALS')
-            if creds_json:
-                creds_dict = json.loads(creds_json)
-                creds = ServiceAccountCredentials.from_json_keyfile_dict(creds_dict, scope)
+            # Try Replit's Google Sheets integration first
+            creds = self.get_replit_credentials()
+            
+            if creds:
+                print("  🔗 Using Replit Google Sheets integration...")
+                self.client = gspread.authorize(creds)
             else:
-                creds = ServiceAccountCredentials.from_json_keyfile_name('credentials.json', scope)
+                # Fallback to traditional service account credentials
+                print("  🔗 Using service account credentials...")
+                scope = [
+                    'https://spreadsheets.google.com/feeds',
+                    'https://www.googleapis.com/auth/drive'
+                ]
 
-            self.client = gspread.authorize(creds)
-            self.spreadsheet = self.client.open(self.sheet_name)
+                creds_json = os.environ.get('GOOGLE_CREDENTIALS')
+                if creds_json:
+                    creds_dict = json.loads(creds_json)
+                    creds = ServiceAccountCredentials.from_json_keyfile_dict(creds_dict, scope)
+                else:
+                    creds = ServiceAccountCredentials.from_json_keyfile_name('credentials.json', scope)
 
-            print(f"✅ Connected to Google Sheet: {self.sheet_name}")
+                self.client = gspread.authorize(creds)
+            
+            # Try to open the spreadsheet or create it
+            try:
+                self.spreadsheet = self.client.open(self.sheet_name)
+                print(f"✅ Connected to existing Google Sheet: {self.sheet_name}")
+            except gspread.exceptions.SpreadsheetNotFound:
+                print(f"  📄 Spreadsheet '{self.sheet_name}' not found. Creating new spreadsheet...")
+                self.spreadsheet = self.client.create(self.sheet_name)
+                print(f"✅ Created and connected to new Google Sheet: {self.sheet_name}")
+                print(f"  🔗 Share this sheet with others or view it at: https://docs.google.com/spreadsheets/d/{self.spreadsheet.id}")
 
+        except gspread.exceptions.SpreadsheetNotFound as e:
+            print(f"❌ Error: Spreadsheet '{self.sheet_name}' not found.")
+            print(f"  💡 Tip: Create a Google Sheet named '{self.sheet_name}' or set GOOGLE_SHEET_NAME environment variable.")
+            raise
         except Exception as e:
             print(f"❌ Error connecting to Google Sheet: {e}")
             raise
