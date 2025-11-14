@@ -85,19 +85,36 @@ All settings are controlled via environment variables:
    - **RES Supply**: 14 solar panels via HTML scraping
    - **US Solar Supplier**: 1,007 products (inverters, panels) via Shopify API
    - **The Solar Store**: 441 products (panels, inverters, batteries/accessories) via Shopify API
+
 2. **Product Categories**: Comprehensive coverage of solar system components
    - Solar Panels
    - Inverters (Grid-tie, Off-grid, Hybrid, Microinverters)
    - Batteries & Storage Accessories
    - Charge Controllers
    - Balance of System (BOS) components
-3. **Google Sheets**: Automatically creates and updates Google Sheets with tabs:
+
+3. **Enhanced Google Sheets Output**: 19 comprehensive columns with business intelligence
+   - **Basic Info**: Distributor, Category, Product Title, Brand, SKU
+   - **Specifications**: Wattage, Efficiency
+   - **Bulk Pricing**: Quantity, Total Price, Price Per Unit
+   - **Pricing Info**: Compare Price, Discount %
+   - **Availability**: Stock Status, Inventory Qty, Shipping Cost
+   - **Links**: Product URL, Image URL
+   - **Metadata**: Product ID, Last Updated
+   - **Auto-categorization**: Products automatically categorized into 7 types (Solar Panel, Inverter, Battery/Storage, Charge Controller, Racking/Mounting, BOS/Electrical, Other)
+   - **Bulk detection**: Automatically detects bulk quantities (pallets, cases, packs) and calculates per-unit pricing
+   - **Column auto-resize**: Optimized readability with auto-resized columns
+
+4. **Google Sheets Tabs**:
    - Individual distributor tabs (5 tabs total)
    - Best Prices comparison tab
    - Summary statistics tab
-3. **Scheduling**: Runs every 6 hours automatically
-4. **Price Tracking**: Tracks price history in price_history.json
-5. **Google Sheets URL**: https://docs.google.com/spreadsheets/d/{auto-generated-id}
+
+5. **Scheduling**: Runs every 6 hours automatically
+
+6. **Price Tracking**: Tracks price history in price_history.json
+
+7. **Google Sheets URL**: https://docs.google.com/spreadsheets/d/{auto-generated-id}
 
 ## Known Issues & Solutions
 No current issues - all scrapers operational!
@@ -106,6 +123,15 @@ No current issues - all scrapers operational!
 None set yet - first time setup
 
 ## Recent Changes
+- 2025-11-14: Enhanced Google Sheets with business intelligence features
+  - Added Product Category column with auto-categorization (7 types: Solar Panel, Inverter, Battery/Storage, Charge Controller, Racking/Mounting, BOS/Electrical, Other)
+  - Implemented smart quantity detection for bulk items (pallets, cases, packs)
+  - Added price-per-unit calculations for bulk products
+  - Reorganized columns for better data readability (19 columns total)
+  - Added Image URL column for product images
+  - Implemented column auto-resize for optimal viewing
+  - Conservative quantity parsing only matches explicit bulk indicators ("pallet of X", "X-pack", etc.) to avoid false positives from specifications like "(7600W)"
+  - Bulk pricing fields (Quantity, Price Per Unit) only display for multi-unit items
 - 2025-11-14: Expanded all scrapers to include multiple product categories
   - Removed Solar Electric Supply scraper (no pricing data available)
   - Expanded Solar Cellz USA: now includes inverters and energy storage accessories
