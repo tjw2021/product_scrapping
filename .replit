@@ -31,4 +31,6 @@ args = "python scheduled_runner.py"
 outputType = "console"
 
 [deployment]
-deploymentTarget = "cloudrun"
+deploymentTarget = "scheduled"
+build = ["sh", "-c", "pip install -r requirements.txt"]
+run = ["sh", "-c", "python main.py"]
