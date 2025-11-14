@@ -17,7 +17,7 @@ class Config:
     # Enable all working scrapers by default
     DISTRIBUTORS_TO_SCRAPE = os.environ.get(
         'DISTRIBUTORS_TO_SCRAPE',
-        'solar_cellz,solar_electric,alte,ressupply,us_solar_supplier,solar_store'
+        'solar_cellz,alte,ressupply,us_solar_supplier,solar_store'
     ).split(',')
 
     # Alert Settings

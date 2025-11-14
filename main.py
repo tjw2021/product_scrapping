@@ -5,7 +5,6 @@ Orchestrates all scrapers, tracking, and reporting
 
 from scrapers import (
     SolarCellzScraper,
-    SolarElectricSupplyScraper,
     AltEScraper,
     RessupplyScraper,
     USSolarSupplierScraper,
@@ -33,7 +32,6 @@ class SolarInventorySystem:
         """Initialize all distributor scrapers"""
         all_scrapers = {
             'solar_cellz': SolarCellzScraper(),
-            'solar_electric': SolarElectricSupplyScraper(),
             'alte': AltEScraper(),
             'ressupply': RessupplyScraper(),
             'us_solar_supplier': USSolarSupplierScraper(),
