@@ -15,10 +15,9 @@ class Config:
     # Scraping Settings
     SCRAPE_INTERVAL_HOURS = int(os.environ.get('SCRAPE_INTERVAL_HOURS', '6'))
     # Enable all working scrapers by default
-    # wholesale_solar redirects to unboundsolar.com (still disabled)
     DISTRIBUTORS_TO_SCRAPE = os.environ.get(
         'DISTRIBUTORS_TO_SCRAPE',
-        'solar_cellz,solar_electric,alte,ressupply'
+        'solar_cellz,solar_electric,alte,ressupply,us_solar_supplier,solar_store'
     ).split(',')
 
     # Alert Settings

@@ -7,7 +7,8 @@ This is a Python-based solar inventory scraper that automatically extracts produ
 Backend / CLI automation system (no web interface)
 
 ## Key Features
-- Scrapes 5 solar distributors: Solar Cellz USA, Solar Electric Supply, Wholesale Solar, altE Store, and RES Supply
+- Scrapes 6 solar distributors: Solar Cellz USA, Solar Electric Supply, altE Store, RES Supply, US Solar Supplier, and The Solar Store
+- Collects solar panels AND inverters from multiple sources
 - Updates Google Sheets with product data (prices, availability, specs)
 - Tracks price changes and sends email alerts
 - Can run on-demand or on a schedule (every 6 hours by default)
@@ -69,23 +70,25 @@ All settings are controlled via environment variables:
 - ✅ Code tested and working (scraped 179 products successfully)
 - ✅ Data successfully transfers to Google Sheets
 - ✅ Scheduled workflow configured (runs every 6 hours)
-- ✅ 4 out of 5 scrapers working perfectly:
-  - Solar Cellz USA: 141 products (Shopify API) ✅
-  - Solar Electric Supply: 527 products (HTML table scraping) ✅
-  - altE Store: 38 products (Shopify API) ✅
-  - RES Supply: 14 products (HTML scraping) ✅
-- ⚠️ 1 scraper needs update:
-  - Wholesale Solar: Domain redirects to unboundsolar.com
+- ✅ All 6 scrapers working perfectly:
+  - Solar Cellz USA: 141 solar panels (Shopify API) ✅
+  - Solar Electric Supply: 527 solar panels (HTML table scraping) ✅
+  - altE Store: 38 solar panels (Shopify API) ✅
+  - RES Supply: 14 solar panels (HTML scraping) ✅
+  - US Solar Supplier: 690 inverters (Shopify API) ✅
+  - The Solar Store: 76 solar panels (Shopify API) ✅
 - ⚠️ Email alerts not configured (optional)
 
 ## Working Features
-1. **Scraping**: Successfully scrapes 720 products from 4 distributors
-   - Solar Cellz USA: 141 products via Shopify API
-   - Solar Electric Supply: 527 products via HTML table parsing
-   - altE Store: 38 products via Shopify API
-   - RES Supply: 14 products via HTML scraping
+1. **Scraping**: Successfully scrapes 1,486 products from 6 distributors
+   - Solar Cellz USA: 141 solar panels via Shopify API
+   - Solar Electric Supply: 527 solar panels via HTML table parsing
+   - altE Store: 38 solar panels via Shopify API
+   - RES Supply: 14 solar panels via HTML scraping
+   - US Solar Supplier: 690 inverters via Shopify API
+   - The Solar Store: 76 solar panels via Shopify API
 2. **Google Sheets**: Automatically creates and updates Google Sheets with tabs:
-   - Individual distributor tabs (Solar Cellz USA, Solar Electric Supply, altE Store, RES Supply)
+   - Individual distributor tabs (6 tabs total)
    - Best Prices comparison tab
    - Summary statistics tab
 3. **Scheduling**: Runs every 6 hours automatically
@@ -93,15 +96,18 @@ All settings are controlled via environment variables:
 5. **Google Sheets URL**: https://docs.google.com/spreadsheets/d/{auto-generated-id}
 
 ## Known Issues & Solutions
-### Wholesale Solar Scraper (Currently Disabled)
-- **Issue**: Domain now redirects to unboundsolar.com
-- **Solution**: Update scraper to use unboundsolar.com or remove
-- **Temporary Fix**: Disabled in default configuration
+No current issues - all scrapers operational!
 
 ## User Preferences
 None set yet - first time setup
 
 ## Recent Changes
+- 2025-11-14: Added two new scrapers and removed Wholesale Solar
+  - Added US Solar Supplier scraper for inverters (690 products via Shopify API)
+  - Added The Solar Store scraper for solar panels (76 products via Shopify API)
+  - Removed Wholesale Solar scraper (domain redirect issue)
+  - System now scrapes 6 distributors with 1,486 total products
+  - New product types: Added inverter data alongside solar panels
 - 2025-11-14: Fixed Solar Electric Supply scraper
   - Rewrote scraper to use HTML table parsing (site uses custom platform, not Shopify)
   - Successfully extracts 527 products from main catalog page
