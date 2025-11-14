@@ -17,32 +17,38 @@ class SolarCellzScraper(BaseScraper):
     def __init__(self):
         super().__init__("Solar Cellz USA")
         self.base_url = "https://shop.solarcellzusa.com"
+        # Multiple collections to scrape
+        self.collections = [
+            'solar-panels',
+            'inverters',
+            'energy-storage-accessories'
+        ]
 
-    def scrape_products(self):
-        """Scrape all solar panel products from Solar Cellz USA"""
-        all_products = []
+    def scrape_collection(self, collection_name):
+        """Scrape products from a specific collection"""
+        products = []
         page = 1
+
+        print(f"  📂 Scraping collection: {collection_name}")
 
         while True:
             try:
-                # Use Shopify's JSON endpoint with pagination
-                url = f"{self.base_url}/collections/solar-panels/products.json?limit=250&page={page}"
-
-                print(f"  📄 Fetching page {page}...")
+                url = f"{self.base_url}/collections/{collection_name}/products.json?limit=250&page={page}"
+                
+                print(f"    📄 Page {page}...")
                 response = self.make_request(url)
 
                 if not response:
                     break
 
                 data = response.json()
-                products = data.get('products', [])
+                collection_products = data.get('products', [])
 
-                if not products:
-                    print(f"  ✅ Completed. Total products: {len(all_products)}")
+                if not collection_products:
+                    print(f"    ✅ Completed {collection_name}: {len(products)} products")
                     break
 
-                for product in products:
-                    # Extract relevant product information
+                for product in collection_products:
                     for variant in product.get('variants', []):
                         wattage = self.extract_wattage(product['title'])
                         efficiency = self.extract_efficiency(product['title'], {})
@@ -62,19 +68,32 @@ class SolarCellzScraper(BaseScraper):
                             product_url=f"{self.base_url}/products/{product['handle']}",
                             image_url=product.get('images', [{}])[0].get('src', 'N/A') if product.get('images') else 'N/A',
                             specs={
+                                'product_type': product.get('product_type', 'N/A'),
+                                'collection': collection_name,
                                 'weight': variant.get('weight', 'N/A'),
                                 'weight_unit': variant.get('weight_unit', 'N/A')
                             }
                         )
 
-                        all_products.append(standardized_product)
+                        products.append(standardized_product)
 
                 page += 1
-                time.sleep(1)  # Be respectful to the server
+                time.sleep(1)
 
             except Exception as e:
-                print(f"  ⚠️ Error on page {page}: {e}")
+                print(f"    ⚠️ Error on page {page}: {e}")
                 break
+
+        return products
+
+    def scrape_products(self):
+        """Scrape products from all collections"""
+        all_products = []
+        
+        for collection in self.collections:
+            collection_products = self.scrape_collection(collection)
+            all_products.extend(collection_products)
+            time.sleep(1)  # Be respectful between collections
 
         return all_products
 

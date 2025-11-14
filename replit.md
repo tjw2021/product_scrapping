@@ -7,8 +7,8 @@ This is a Python-based solar inventory scraper that automatically extracts produ
 Backend / CLI automation system (no web interface)
 
 ## Key Features
-- Scrapes 6 solar distributors: Solar Cellz USA, Solar Electric Supply, altE Store, RES Supply, US Solar Supplier, and The Solar Store
-- Collects solar panels AND inverters from multiple sources
+- Scrapes 5 solar distributors: Solar Cellz USA, altE Store, RES Supply, US Solar Supplier, and The Solar Store
+- Collects comprehensive solar system components: solar panels, inverters (grid-tie/off-grid/hybrid), batteries, charge controllers, racking, and BOS equipment
 - Updates Google Sheets with product data (prices, availability, specs)
 - Tracks price changes and sends email alerts
 - Can run on-demand or on a schedule (every 6 hours by default)
@@ -70,25 +70,29 @@ All settings are controlled via environment variables:
 - ✅ Code tested and working (scraped 179 products successfully)
 - ✅ Data successfully transfers to Google Sheets
 - ✅ Scheduled workflow configured (runs every 6 hours)
-- ✅ All 6 scrapers working perfectly:
-  - Solar Cellz USA: 141 solar panels (Shopify API) ✅
-  - Solar Electric Supply: 527 solar panels (HTML table scraping) ✅
-  - altE Store: 38 solar panels (Shopify API) ✅
+- ✅ All 5 scrapers working perfectly with multi-category support:
+  - Solar Cellz USA: 275 products (141 panels + 131 inverters + 3 storage accessories) ✅
+  - altE Store: 106 products (38 panels + 22 inverters + 46 charge controllers) ✅
   - RES Supply: 14 solar panels (HTML scraping) ✅
-  - US Solar Supplier: 690 inverters (Shopify API) ✅
-  - The Solar Store: 76 solar panels (Shopify API) ✅
+  - US Solar Supplier: 1,007 products (690 inverters + 317 panels) ✅
+  - The Solar Store: 441 products (76 panels + 117 inverters + 248 batteries/accessories) ✅
 - ⚠️ Email alerts not configured (optional)
 
 ## Working Features
-1. **Scraping**: Successfully scrapes 1,486 products from 6 distributors
-   - Solar Cellz USA: 141 solar panels via Shopify API
-   - Solar Electric Supply: 527 solar panels via HTML table parsing
-   - altE Store: 38 solar panels via Shopify API
-   - RES Supply: 14 solar panels via HTML scraping
-   - US Solar Supplier: 690 inverters via Shopify API
-   - The Solar Store: 76 solar panels via Shopify API
-2. **Google Sheets**: Automatically creates and updates Google Sheets with tabs:
-   - Individual distributor tabs (6 tabs total)
+1. **Scraping**: Successfully scrapes 1,843 products from 5 distributors across multiple categories
+   - **Solar Cellz USA**: 275 products (panels, inverters, storage accessories) via Shopify API
+   - **altE Store**: 106 products (panels, off-grid/hybrid inverters, charge controllers) via Shopify API
+   - **RES Supply**: 14 solar panels via HTML scraping
+   - **US Solar Supplier**: 1,007 products (inverters, panels) via Shopify API
+   - **The Solar Store**: 441 products (panels, inverters, batteries/accessories) via Shopify API
+2. **Product Categories**: Comprehensive coverage of solar system components
+   - Solar Panels
+   - Inverters (Grid-tie, Off-grid, Hybrid, Microinverters)
+   - Batteries & Storage Accessories
+   - Charge Controllers
+   - Balance of System (BOS) components
+3. **Google Sheets**: Automatically creates and updates Google Sheets with tabs:
+   - Individual distributor tabs (5 tabs total)
    - Best Prices comparison tab
    - Summary statistics tab
 3. **Scheduling**: Runs every 6 hours automatically
@@ -102,12 +106,18 @@ No current issues - all scrapers operational!
 None set yet - first time setup
 
 ## Recent Changes
+- 2025-11-14: Expanded all scrapers to include multiple product categories
+  - Removed Solar Electric Supply scraper (no pricing data available)
+  - Expanded Solar Cellz USA: now includes inverters and energy storage accessories
+  - Expanded altE Store: now includes off-grid/hybrid inverters and charge controllers
+  - Expanded The Solar Store: now includes inverters and batteries/accessories
+  - Expanded US Solar Supplier: now includes solar panels in addition to inverters
+  - System now scrapes 5 distributors with 1,843 total products
+  - Product types: Solar panels, inverters (all types), batteries, charge controllers, storage accessories
 - 2025-11-14: Added two new scrapers and removed Wholesale Solar
   - Added US Solar Supplier scraper for inverters (690 products via Shopify API)
   - Added The Solar Store scraper for solar panels (76 products via Shopify API)
   - Removed Wholesale Solar scraper (domain redirect issue)
-  - System now scrapes 6 distributors with 1,486 total products
-  - New product types: Added inverter data alongside solar panels
 - 2025-11-14: Fixed Solar Electric Supply scraper
   - Rewrote scraper to use HTML table parsing (site uses custom platform, not Shopify)
   - Successfully extracts 527 products from main catalog page
