@@ -6,7 +6,6 @@ Orchestrates all scrapers, tracking, and reporting
 from scrapers import (
     SolarCellzScraper,
     SolarElectricSupplyScraper,
-    WholesaleSolarScraper,
     AltEScraper,
     RessupplyScraper
 )
@@ -33,7 +32,6 @@ class SolarInventorySystem:
         all_scrapers = {
             'solar_cellz': SolarCellzScraper(),
             'solar_electric': SolarElectricSupplyScraper(),
-            'wholesale_solar': WholesaleSolarScraper(),
             'alte': AltEScraper(),
             'ressupply': RessupplyScraper()
         }
