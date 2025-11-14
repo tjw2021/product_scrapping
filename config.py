@@ -18,7 +18,7 @@ class Config:
     # solar_electric uses Magento (not Shopify), wholesale_solar redirects to unboundsolar.com
     DISTRIBUTORS_TO_SCRAPE = os.environ.get(
         'DISTRIBUTORS_TO_SCRAPE',
-        'solar_cellz,alte'
+        'solar_cellz,alte,ressupply'
     ).split(',')
 
     # Alert Settings

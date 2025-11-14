@@ -7,7 +7,7 @@ This is a Python-based solar inventory scraper that automatically extracts produ
 Backend / CLI automation system (no web interface)
 
 ## Key Features
-- Scrapes 4 solar distributors: Solar Cellz USA, Solar Electric Supply, Wholesale Solar, and altE Store
+- Scrapes 5 solar distributors: Solar Cellz USA, Solar Electric Supply, Wholesale Solar, altE Store, and RES Supply
 - Updates Google Sheets with product data (prices, availability, specs)
 - Tracks price changes and sends email alerts
 - Can run on-demand or on a schedule (every 6 hours by default)
@@ -69,19 +69,23 @@ All settings are controlled via environment variables:
 - ✅ Code tested and working (scraped 179 products successfully)
 - ✅ Data successfully transfers to Google Sheets
 - ✅ Scheduled workflow configured (runs every 6 hours)
-- ✅ 2 out of 4 scrapers working perfectly:
-  - Solar Cellz USA: 141 products ✅
-  - altE Store: 38 products ✅
+- ✅ 3 out of 5 scrapers working perfectly:
+  - Solar Cellz USA: 141 products (Shopify API) ✅
+  - altE Store: 38 products (Shopify API) ✅
+  - RES Supply: 14 products (HTML scraping) ✅
 - ⚠️ 2 scrapers need updates (website platform changed):
   - Solar Electric Supply: Uses Magento (not Shopify API)
   - Wholesale Solar: Domain redirects to unboundsolar.com
 - ⚠️ Email alerts not configured (optional)
 
 ## Working Features
-1. **Scraping**: Successfully scrapes 179 products from 2 distributors
-2. **Google Sheets**: Automatically creates and updates Google Sheets with 4 tabs:
-   - Individual distributor tabs (Solar Cellz USA, altE Store)
-   - Best Prices comparison tab (128 product groups)
+1. **Scraping**: Successfully scrapes 193 products from 3 distributors
+   - Solar Cellz USA: 141 products via Shopify API
+   - altE Store: 38 products via Shopify API
+   - RES Supply: 14 products via HTML scraping
+2. **Google Sheets**: Automatically creates and updates Google Sheets with tabs:
+   - Individual distributor tabs (Solar Cellz USA, altE Store, RES Supply)
+   - Best Prices comparison tab
    - Summary statistics tab
 3. **Scheduling**: Runs every 6 hours automatically
 4. **Price Tracking**: Tracks price history in price_history.json
@@ -102,7 +106,14 @@ All settings are controlled via environment variables:
 None set yet - first time setup
 
 ## Recent Changes
+- 2025-11-14: Added RES Supply scraper
+  - Created new HTML-based scraper for ressupply.com (uses OpenCart platform)
+  - Scrapes 14 solar panel products from 2 categories (solar-panels, solar-panel-pallets)
+  - Extracts product details including specs, pricing, wattage, brand, and minimum quantities
+  - Added to default configuration alongside Solar Cellz USA and altE Store
+  - Total products now: 193 across 3 distributors
 - 2025-11-14: Initial setup in Replit environment
   - Installed Python 3.11 and dependencies
   - Configured scheduled workflow to run every 6 hours
   - Tested scraping functionality (working correctly)
+  - Successfully integrated Google Sheets via Replit connector

@@ -7,7 +7,8 @@ from scrapers import (
     SolarCellzScraper,
     SolarElectricSupplyScraper,
     WholesaleSolarScraper,
-    AltEScraper
+    AltEScraper,
+    RessupplyScraper
 )
 from sheets_manager import SheetsManager
 from price_tracker import PriceTracker
@@ -33,7 +34,8 @@ class SolarInventorySystem:
             'solar_cellz': SolarCellzScraper(),
             'solar_electric': SolarElectricSupplyScraper(),
             'wholesale_solar': WholesaleSolarScraper(),
-            'alte': AltEScraper()
+            'alte': AltEScraper(),
+            'ressupply': RessupplyScraper()
         }
 
         # Filter based on config
