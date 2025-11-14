@@ -14,11 +14,11 @@ class Config:
 
     # Scraping Settings
     SCRAPE_INTERVAL_HOURS = int(os.environ.get('SCRAPE_INTERVAL_HOURS', '6'))
-    # Only enable working scrapers by default
-    # solar_electric uses Magento (not Shopify), wholesale_solar redirects to unboundsolar.com
+    # Enable all working scrapers by default
+    # wholesale_solar redirects to unboundsolar.com (still disabled)
     DISTRIBUTORS_TO_SCRAPE = os.environ.get(
         'DISTRIBUTORS_TO_SCRAPE',
-        'solar_cellz,alte,ressupply'
+        'solar_cellz,solar_electric,alte,ressupply'
     ).split(',')
 
     # Alert Settings
