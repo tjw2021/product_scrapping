@@ -69,22 +69,23 @@ All settings are controlled via environment variables:
 - ✅ Code tested and working (scraped 179 products successfully)
 - ✅ Data successfully transfers to Google Sheets
 - ✅ Scheduled workflow configured (runs every 6 hours)
-- ✅ 3 out of 5 scrapers working perfectly:
+- ✅ 4 out of 5 scrapers working perfectly:
   - Solar Cellz USA: 141 products (Shopify API) ✅
+  - Solar Electric Supply: 527 products (HTML table scraping) ✅
   - altE Store: 38 products (Shopify API) ✅
   - RES Supply: 14 products (HTML scraping) ✅
-- ⚠️ 2 scrapers need updates (website platform changed):
-  - Solar Electric Supply: Uses Magento (not Shopify API)
+- ⚠️ 1 scraper needs update:
   - Wholesale Solar: Domain redirects to unboundsolar.com
 - ⚠️ Email alerts not configured (optional)
 
 ## Working Features
-1. **Scraping**: Successfully scrapes 193 products from 3 distributors
+1. **Scraping**: Successfully scrapes 720 products from 4 distributors
    - Solar Cellz USA: 141 products via Shopify API
+   - Solar Electric Supply: 527 products via HTML table parsing
    - altE Store: 38 products via Shopify API
    - RES Supply: 14 products via HTML scraping
 2. **Google Sheets**: Automatically creates and updates Google Sheets with tabs:
-   - Individual distributor tabs (Solar Cellz USA, altE Store, RES Supply)
+   - Individual distributor tabs (Solar Cellz USA, Solar Electric Supply, altE Store, RES Supply)
    - Best Prices comparison tab
    - Summary statistics tab
 3. **Scheduling**: Runs every 6 hours automatically
@@ -92,11 +93,6 @@ All settings are controlled via environment variables:
 5. **Google Sheets URL**: https://docs.google.com/spreadsheets/d/{auto-generated-id}
 
 ## Known Issues & Solutions
-### Solar Electric Supply Scraper (Currently Disabled)
-- **Issue**: Website uses Magento, not Shopify - Shopify API endpoints return 404
-- **Solution**: Need to implement Magento scraper or HTML scraping
-- **Temporary Fix**: Disabled in default configuration
-
 ### Wholesale Solar Scraper (Currently Disabled)
 - **Issue**: Domain now redirects to unboundsolar.com
 - **Solution**: Update scraper to use unboundsolar.com or remove
@@ -106,6 +102,13 @@ All settings are controlled via environment variables:
 None set yet - first time setup
 
 ## Recent Changes
+- 2025-11-14: Fixed Solar Electric Supply scraper
+  - Rewrote scraper to use HTML table parsing (site uses custom platform, not Shopify)
+  - Successfully extracts 527 products from main catalog page
+  - Parses product tables with details: brand, wattage, PTC rating, cell type, stock status
+  - Includes product specs: frame color, cell type, origin, manufacturing location
+  - Added to default configuration
+  - Total products now: 720 across 4 distributors
 - 2025-11-14: Added RES Supply scraper
   - Created new HTML-based scraper for ressupply.com (uses OpenCart platform)
   - Scrapes 14 solar panel products from 2 categories (solar-panels, solar-panel-pallets)
