@@ -7,9 +7,9 @@ This is a Python-based solar inventory scraper that automatically extracts produ
 Backend / CLI automation system (no web interface)
 
 ## Key Features
-- Scrapes 5 solar distributors: Solar Cellz USA, altE Store, RES Supply, US Solar Supplier, and The Solar Store
-- Collects comprehensive solar system components: solar panels, inverters (grid-tie/off-grid/hybrid), batteries, charge controllers, racking, and BOS equipment
-- Updates Google Sheets with product data (prices, availability, specs)
+- Scrapes 6 distributors: Solar Cellz USA, altE Store, RES Supply, US Solar Supplier, The Solar Store, and Giga Energy
+- Collects comprehensive products: solar panels, inverters (grid-tie/off-grid/hybrid), batteries, charge controllers, racking, BOS equipment, and **transformers**
+- Updates Google Sheets with product data (prices, availability, specs, KVA ratings for transformers)
 - Tracks price changes and sends email alerts
 - Can run on-demand or on a schedule (every 6 hours by default)
 
@@ -67,46 +67,51 @@ All settings are controlled via environment variables:
 - ✅ Python 3.11 installed
 - ✅ All dependencies installed  
 - ✅ Google Sheets integration fully configured and working
-- ✅ Code tested and working (scraped 179 products successfully)
+- ✅ Code tested and working (scraped 2,088 products successfully)
 - ✅ Data successfully transfers to Google Sheets
 - ✅ Scheduled workflow configured (runs every 6 hours)
-- ✅ All 5 scrapers working perfectly with multi-category support:
-  - Solar Cellz USA: 275 products (141 panels + 131 inverters + 3 storage accessories) ✅
-  - altE Store: 106 products (38 panels + 22 inverters + 46 charge controllers) ✅
+- ✅ All 6 scrapers working perfectly with multi-category support:
+  - Solar Cellz USA: 278 products (panels, inverters, storage accessories) ✅
+  - altE Store: 106 products (panels, inverters, charge controllers) ✅
   - RES Supply: 14 solar panels (HTML scraping) ✅
-  - US Solar Supplier: 1,007 products (690 inverters + 317 panels) ✅
-  - The Solar Store: 441 products (76 panels + 117 inverters + 248 batteries/accessories) ✅
+  - US Solar Supplier: 1,007 products (inverters, panels) ✅
+  - The Solar Store: 443 products (panels, inverters, batteries/accessories) ✅
+  - Giga Energy: 240 transformers (3-phase padmount with KVA ratings) ✅ NEW!
 - ⚠️ Email alerts not configured (optional)
+- ⚠️ Essential Parts scraper created but blocked by Cloudflare protection (not active)
 
 ## Working Features
-1. **Scraping**: Successfully scrapes 1,843 products from 5 distributors across multiple categories
-   - **Solar Cellz USA**: 275 products (panels, inverters, storage accessories) via Shopify API
+1. **Scraping**: Successfully scrapes 2,088 products from 6 distributors across multiple categories
+   - **Solar Cellz USA**: 278 products (panels, inverters, storage accessories) via Shopify API
    - **altE Store**: 106 products (panels, off-grid/hybrid inverters, charge controllers) via Shopify API
    - **RES Supply**: 14 solar panels via HTML scraping
    - **US Solar Supplier**: 1,007 products (inverters, panels) via Shopify API
-   - **The Solar Store**: 441 products (panels, inverters, batteries/accessories) via Shopify API
+   - **The Solar Store**: 443 products (panels, inverters, batteries/accessories) via Shopify API
+   - **Giga Energy**: 240 transformers (3-phase padmount transformers with KVA ratings) via HTML scraping ✅ NEW!
 
-2. **Product Categories**: Comprehensive coverage of solar system components
+2. **Product Categories**: Comprehensive coverage of electrical system components
    - Solar Panels
    - Inverters (Grid-tie, Off-grid, Hybrid, Microinverters)
    - Batteries & Storage Accessories
    - Charge Controllers
+   - **Transformers (with KVA ratings)** ✅ NEW!
    - Balance of System (BOS) components
 
 3. **Enhanced Google Sheets Output**: 19 comprehensive columns with business intelligence
    - **Basic Info**: Distributor, Category, Product Title, Brand, SKU
-   - **Specifications**: Wattage, Efficiency
+   - **Specifications**: Wattage/KVA (supports both solar panels and transformers), Efficiency
    - **Bulk Pricing**: Quantity, Total Price, Price Per Unit
    - **Pricing Info**: Compare Price, Discount %
    - **Availability**: Stock Status, Inventory Qty, Shipping Cost
    - **Links**: Product URL, Image URL
    - **Metadata**: Product ID, Last Updated
-   - **Auto-categorization**: Products automatically categorized into 7 types (Solar Panel, Inverter, Battery/Storage, Charge Controller, Racking/Mounting, BOS/Electrical, Other)
+   - **Auto-categorization**: Products automatically categorized into 9 types (Solar Panel, Inverter, Battery/Storage, Charge Controller, Racking/Mounting, BOS/Electrical, **Transformer**, **Switch**, Other)
+   - **KVA support**: Transformers show KVA ratings instead of Wattage
    - **Bulk detection**: Automatically detects bulk quantities (pallets, cases, packs) and calculates per-unit pricing
    - **Column auto-resize**: Optimized readability with auto-resized columns
 
 4. **Google Sheets Tabs**:
-   - Individual distributor tabs (5 tabs total)
+   - Individual distributor tabs (6 tabs total, including Giga Energy)
    - Best Prices comparison tab
    - Summary statistics tab
 
@@ -123,6 +128,14 @@ No current issues - all scrapers operational!
 None set yet - first time setup
 
 ## Recent Changes
+- 2025-11-15: Added Giga Energy transformer scraper
+  - Created new scraper for gigaenergy.com transformers (HTML scraping)
+  - Successfully scrapes 240 3-phase padmount transformers with KVA ratings
+  - Added KVA extraction method to base scraper (transformers use KVA instead of Wattage)
+  - Added Transformer and Switch categories to product categorization
+  - Updated system to handle 2,088 total products (up from 1,843)
+  - Created Essential Parts scraper but disabled due to Cloudflare protection
+  - All 6 distributor tabs now in Google Sheets
 - 2025-11-14: Enhanced Google Sheets with business intelligence features
   - Added Product Category column with auto-categorization (7 types: Solar Panel, Inverter, Battery/Storage, Charge Controller, Racking/Mounting, BOS/Electrical, Other)
   - Implemented smart quantity detection for bulk items (pallets, cases, packs)
