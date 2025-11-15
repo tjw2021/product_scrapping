@@ -8,7 +8,9 @@ from scrapers import (
     AltEScraper,
     RessupplyScraper,
     USSolarSupplierScraper,
-    SolarStoreScraper
+    SolarStoreScraper,
+    GigaEnergyScraper,
+    EssentialPartsScraper
 )
 from sheets_manager import SheetsManager
 from price_tracker import PriceTracker
@@ -35,7 +37,9 @@ class SolarInventorySystem:
             'alte': AltEScraper(),
             'ressupply': RessupplyScraper(),
             'us_solar_supplier': USSolarSupplierScraper(),
-            'solar_store': SolarStoreScraper()
+            'solar_store': SolarStoreScraper(),
+            'giga_energy': GigaEnergyScraper(),
+            'essential_parts': EssentialPartsScraper()
         }
 
         # Filter based on config

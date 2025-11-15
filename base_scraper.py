@@ -91,6 +91,24 @@ class BaseScraper(ABC):
         import re
         match = re.search(r'(\d+)\s*[Ww](?:att)?', title)
         return f"{match.group(1)}W" if match else 'N/A'
+    
+    def extract_kva(self, title: str, specs: dict) -> str:
+        """
+        Extract KVA rating from title or specs (for transformers)
+        Examples: "1500 KVA", "1500kva", "1500 kva"
+        """
+        import re
+        
+        # Check specs first if available
+        if specs.get('kva'):
+            return str(specs['kva'])
+        
+        # Try to find KVA in title
+        match = re.search(r'(\d+)\s*[Kk][Vv][Aa]', title)
+        if match:
+            return f"{match.group(1)} KVA"
+        
+        return 'N/A'
 
     def extract_efficiency(self, title: str, specs: dict) -> str:
         """Extract efficiency from title or specs"""
@@ -162,7 +180,7 @@ class BaseScraper(ABC):
     def extract_product_category(self, title: str, specs: dict) -> str:
         """
         Determine product category from title and specs
-        Categories: Solar Panel, Inverter, Battery, Charge Controller, Racking, BOS, Other
+        Categories: Solar Panel, Inverter, Battery, Charge Controller, Racking, BOS, Transformer, Switch, Other
         """
         import re
         
@@ -171,7 +189,11 @@ class BaseScraper(ABC):
         # Check specs first if available
         if specs.get('product_type'):
             product_type = specs['product_type'].lower()
-            if 'panel' in product_type or 'module' in product_type:
+            if 'transformer' in product_type:
+                return 'Transformer'
+            elif 'switch' in product_type:
+                return 'Switch'
+            elif 'panel' in product_type or 'module' in product_type:
                 return 'Solar Panel'
             elif 'inverter' in product_type:
                 return 'Inverter'
@@ -185,7 +207,11 @@ class BaseScraper(ABC):
         # Check collection if available
         if specs.get('collection'):
             collection = specs['collection'].lower()
-            if 'panel' in collection:
+            if 'transformer' in collection:
+                return 'Transformer'
+            elif 'switch' in collection:
+                return 'Switch'
+            elif 'panel' in collection:
                 return 'Solar Panel'
             elif 'inverter' in collection:
                 return 'Inverter'
@@ -197,7 +223,11 @@ class BaseScraper(ABC):
                 return 'Racking/Mounting'
         
         # Fallback to title analysis
-        if re.search(r'\b(?:solar\s+)?panel|module|pv\s+panel\b', title_lower):
+        if re.search(r'\btransformer|padmount|pad-mount|kva\b', title_lower):
+            return 'Transformer'
+        elif re.search(r'\bswitch(?:es)?|disconnect|circuit\s+breaker|switchgear\b', title_lower):
+            return 'Switch'
+        elif re.search(r'\b(?:solar\s+)?panel|module|pv\s+panel\b', title_lower):
             return 'Solar Panel'
         elif re.search(r'\binverter|micro[-\s]?inverter|grid[-\s]?tie|off[-\s]?grid\b', title_lower):
             return 'Inverter'
@@ -207,7 +237,7 @@ class BaseScraper(ABC):
             return 'Charge Controller'
         elif re.search(r'\bracking|mounting|rail|bracket|clamp|flashings?\b', title_lower):
             return 'Racking/Mounting'
-        elif re.search(r'\bcombiner|disconnect|breaker|fuse|wire|cable|conduit\b', title_lower):
+        elif re.search(r'\bcombiner|fuse|wire|cable|conduit\b', title_lower):
             return 'BOS/Electrical'
         
         return 'Other'

@@ -14,10 +14,10 @@ class Config:
 
     # Scraping Settings
     SCRAPE_INTERVAL_HOURS = int(os.environ.get('SCRAPE_INTERVAL_HOURS', '6'))
-    # Enable all working scrapers by default
+    # Enable all working scrapers by default (essential_parts excluded due to Cloudflare protection)
     DISTRIBUTORS_TO_SCRAPE = os.environ.get(
         'DISTRIBUTORS_TO_SCRAPE',
-        'solar_cellz,alte,ressupply,us_solar_supplier,solar_store'
+        'solar_cellz,alte,ressupply,us_solar_supplier,solar_store,giga_energy'
     ).split(',')
 
     # Alert Settings

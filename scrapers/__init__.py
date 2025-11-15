@@ -8,11 +8,15 @@ from .alte_scraper import AltEScraper
 from .ressupply_scraper import RessupplyScraper
 from .us_solar_supplier_scraper import USSolarSupplierScraper
 from .solar_store_scraper import SolarStoreScraper
+from .giga_energy_scraper import GigaEnergyScraper
+from .essential_parts_scraper import EssentialPartsScraper
 
 __all__ = [
     'SolarCellzScraper',
     'AltEScraper',
     'RessupplyScraper',
     'USSolarSupplierScraper',
-    'SolarStoreScraper'
+    'SolarStoreScraper',
+    'GigaEnergyScraper',
+    'EssentialPartsScraper'
 ]
