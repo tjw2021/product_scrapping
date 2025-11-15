@@ -145,7 +145,9 @@ class SheetsManager:
                 'Product Title',
                 'Brand',
                 'SKU',
-                'Wattage',
+                'Wattage/KVA',
+                'Primary Voltage',
+                'Secondary Voltage',
                 'Efficiency',
                 'Quantity',
                 'Total Price',
@@ -177,6 +179,10 @@ class SheetsManager:
                 total_price = product.get('price', 0)
                 price_per_unit = product.get('price_per_unit', total_price)
 
+                # Get voltage specs from product specs
+                primary_voltage = product.get('specs', {}).get('primary_voltage', 'N/A')
+                secondary_voltage = product.get('specs', {}).get('secondary_voltage', 'N/A')
+                
                 row = [
                     product.get('distributor', 'N/A'),
                     product.get('category', 'N/A'),
@@ -184,6 +190,8 @@ class SheetsManager:
                     product.get('brand', 'N/A'),
                     product.get('sku', 'N/A'),
                     product.get('wattage', 'N/A'),
+                    primary_voltage,
+                    secondary_voltage,
                     product.get('efficiency', 'N/A'),
                     quantity if quantity > 1 else '',
                     f"${total_price:.2f}",
@@ -203,8 +211,8 @@ class SheetsManager:
             # Update sheet with all data
             worksheet.update('A1', rows, value_input_option='USER_ENTERED')
 
-            # Format headers
-            worksheet.format('A1:S1', {
+            # Format headers (now 21 columns: A to U)
+            worksheet.format('A1:U1', {
                 "textFormat": {"bold": True},
                 "backgroundColor": {"red": 0.2, "green": 0.5, "blue": 0.8},
                 "textFormat": {"foregroundColor": {"red": 1, "green": 1, "blue": 1}}
@@ -275,7 +283,9 @@ class SheetsManager:
                 '🏆 Rank',
                 'Product Title',
                 'Brand',
-                'Wattage',
+                'Wattage/KVA',
+                'Primary Voltage',
+                'Secondary Voltage',
                 'Efficiency',
                 '💰 Best Price',
                 '🏪 Best Distributor',
@@ -289,11 +299,17 @@ class SheetsManager:
             rows = [headers]
 
             for idx, product in enumerate(best_deals, 1):
+                # Get voltage specs from product specs
+                primary_voltage = product.get('specs', {}).get('primary_voltage', 'N/A')
+                secondary_voltage = product.get('specs', {}).get('secondary_voltage', 'N/A')
+                
                 row = [
                     f"#{idx}",
                     product.get('title', 'N/A'),
                     product.get('brand', 'N/A'),
                     product.get('wattage', 'N/A'),
+                    primary_voltage,
+                    secondary_voltage,
                     product.get('efficiency', 'N/A'),
                     f"${product.get('price', 0):.2f}",
                     product.get('distributor', 'N/A'),
@@ -308,8 +324,8 @@ class SheetsManager:
             # Update sheet
             worksheet.update('A1', rows, value_input_option='USER_ENTERED')
 
-            # Format headers
-            worksheet.format('A1:L1', {
+            # Format headers (now 14 columns: A to N)
+            worksheet.format('A1:N1', {
                 "textFormat": {"bold": True, "fontSize": 11},
                 "backgroundColor": {"red": 0.85, "green": 0.65, "blue": 0.13},
                 "textFormat": {"foregroundColor": {"red": 1, "green": 1, "blue": 1}}
@@ -317,7 +333,7 @@ class SheetsManager:
 
             # Highlight top 10 deals
             if len(best_deals) >= 10:
-                worksheet.format('A2:L11', {
+                worksheet.format('A2:N11', {
                     "backgroundColor": {"red": 0.95, "green": 0.95, "blue": 0.7}
                 })
 

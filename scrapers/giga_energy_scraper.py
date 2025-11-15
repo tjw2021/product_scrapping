@@ -11,7 +11,6 @@ from base_scraper import BaseScraper
 from bs4 import BeautifulSoup
 import time
 import re
-import json
 
 
 class GigaEnergyScraper(BaseScraper):
@@ -22,16 +21,113 @@ class GigaEnergyScraper(BaseScraper):
         self.base_url = "https://www.gigaenergy.com"
         self.shop_url = f"{self.base_url}/shop"
 
+    def parse_voltages_from_title(self, title):
+        """
+        Parse primary and secondary voltages from title.
+        Example: "1500 kVA 3-Phase Padmount Transformer: 20780 D to 480 Y/ 277"
+        Returns: (primary_voltage, secondary_voltage)
+        """
+        primary_voltage = 'N/A'
+        secondary_voltage = 'N/A'
+        
+        # Pattern: "20780 D to 480 Y/ 277" or similar
+        voltage_pattern = r'(\d+)\s*([DY])\s*to\s*(\d+)\s*([DY])(?:/\s*(\d+))?'
+        match = re.search(voltage_pattern, title, re.IGNORECASE)
+        
+        if match:
+            primary_v = match.group(1)
+            primary_type = match.group(2).upper()
+            secondary_v = match.group(3)
+            secondary_type = match.group(4).upper()
+            secondary_neutral = match.group(5) if match.group(5) else ''
+            
+            primary_voltage = f"{primary_v}V {primary_type}"
+            if secondary_neutral:
+                secondary_voltage = f"{secondary_v}V {secondary_type}/{secondary_neutral}V"
+            else:
+                secondary_voltage = f"{secondary_v}V {secondary_type}"
+        
+        return primary_voltage, secondary_voltage
+
+    def scrape_product_details(self, product_url):
+        """
+        Scrape detailed product information from individual product page.
+        Returns: dict with price, KVA, voltages, description, etc.
+        """
+        try:
+            response = self.make_request(product_url, timeout=15)
+            if not response:
+                return None
+            
+            soup = BeautifulSoup(response.content, 'html.parser')
+            
+            # Extract title (full product description)
+            title_elem = soup.find('title')
+            title = title_elem.text.split('・')[0].strip() if title_elem else 'N/A'
+            
+            # Extract price from shop_price-number class
+            price_elem = soup.find('span', class_='shop_price-number')
+            price = 0.0
+            if price_elem:
+                price_text = price_elem.get_text(strip=True).replace(',', '')
+                try:
+                    price = float(price_text)
+                except ValueError:
+                    price = 0.0
+            
+            # Extract KVA rating from input field
+            kva_input = soup.find('input', {'name': 'kva_rating'})
+            kva = 'N/A'
+            if kva_input and kva_input.get('value'):
+                kva = f"{kva_input.get('value')} KVA"
+            else:
+                # Fallback: parse from title
+                kva_match = re.search(r'(\d+)\s*kVA', title, re.IGNORECASE)
+                if kva_match:
+                    kva = f"{kva_match.group(1)} KVA"
+            
+            # Parse voltages from title
+            primary_voltage, secondary_voltage = self.parse_voltages_from_title(title)
+            
+            # Extract image
+            img_elem = soup.find('img', src=lambda x: x and 'cdn.prod.website-files.com' in x if x else False)
+            image_url = 'N/A'
+            if img_elem:
+                image_url = img_elem.get('src', 'N/A')
+                if image_url and not image_url.startswith('http'):
+                    if image_url.startswith('//'):
+                        image_url = f"https:{image_url}"
+                    else:
+                        image_url = f"{self.base_url}{image_url}"
+            
+            # Create description from title
+            description = title
+            
+            return {
+                'title': title,
+                'price': price,
+                'kva': kva,
+                'primary_voltage': primary_voltage,
+                'secondary_voltage': secondary_voltage,
+                'description': description,
+                'image_url': image_url
+            }
+            
+        except Exception as e:
+            print(f"      ⚠️ Error scraping product details: {e}")
+            return None
+
     def scrape_products(self):
         """Scrape all transformer products from Giga Energy"""
         all_products = []
         page = 1
+        product_urls = set()
         
         print(f"  📂 Scraping transformers from Giga Energy")
 
-        while page <= 20:  # Max 20 pages to prevent infinite loops
+        # Step 1: Collect all product URLs from listing pages
+        while page <= 20:
             try:
-                # Giga Energy uses pagination with page parameter
                 url = f"{self.shop_url}?1cec0fbe_page={page}" if page > 1 else self.shop_url
                 
                 print(f"    📄 Page {page}...")
@@ -42,119 +138,80 @@ class GigaEnergyScraper(BaseScraper):
 
                 soup = BeautifulSoup(response.content, 'html.parser')
                 
-                # Try to find product items - Webflow typically uses specific structures
+                # Find product links
                 product_items = soup.find_all('a', href=lambda x: x and '/shop/' in x if x else False)
                 
                 if not product_items or len(product_items) == 0:
-                    if page == 1:
-                        print(f"    ⚠️ No products found on page 1")
-                    print(f"    ✅ Completed scraping: {len(all_products)} products")
+                    print(f"    ✅ Completed URL collection: {len(product_urls)} unique products")
                     break
 
-                found_products_on_page = 0
-                
+                found_new = False
                 for item in product_items:
-                    try:
-                        # Get product URL
-                        product_url = item.get('href', '')
-                        if not product_url or product_url == '#':
-                            continue
-                            
-                        if not product_url.startswith('http'):
-                            product_url = f"{self.base_url}{product_url}"
-                        
-                        # Extract product title
-                        title_elem = item.find(['h3', 'h2', 'h4', 'div'], class_=lambda x: x and any(t in x.lower() for t in ['title', 'name', 'product']) if x else False)
-                        if not title_elem:
-                            # Try any string content
-                            title_texts = item.find_all(string=lambda x: x and 'phase' in x.lower() and 'transformer' in x.lower() if x else False)
-                            title = title_texts[0].strip() if title_texts else None
-                        else:
-                            title = title_elem.get_text(strip=True)
-                        
-                        if not title or title == '':
-                            continue
-                        
-                        # Extract KVA rating (e.g., "1500" from title or data attributes)
-                        kva_match = re.search(r'(\d+)\s*kva', str(item), re.IGNORECASE)
-                        if kva_match:
-                            kva = f"{kva_match.group(1)} KVA"
-                        else:
-                            # Try to find in title
-                            kva = self.extract_kva(title, {})
-                        
-                        # Extract price
-                        price_elem = item.find(['div', 'span'], string=lambda x: x and '$' in x if x else False)
-                        if not price_elem:
-                            price_elem = item.find(['div', 'span'], class_=lambda x: x and 'price' in x.lower() if x else False)
-                        
-                        price = 0.0
-                        if price_elem:
-                            price_text = price_elem.get_text(strip=True)
-                            price_match = re.search(r'\$?([\d,]+\.?\d*)', price_text)
-                            price = float(price_match.group(1).replace(',', '')) if price_match else 0.0
-                        
-                        # Extract voltage info if available
-                        voltage_info = {}
-                        high_voltage_elem = item.find(string=lambda x: x and 'high voltage' in x.lower() if x else False)
-                        low_voltage_elem = item.find(string=lambda x: x and 'low voltage' in x.lower() if x else False)
-                        
-                        # Extract image
-                        img_elem = item.find('img')
-                        image_url = 'N/A'
-                        if img_elem:
-                            image_url = img_elem.get('src', 'N/A')
-                            if image_url and not image_url.startswith('http'):
-                                if image_url.startswith('//'):
-                                    image_url = f"https:{image_url}"
-                                else:
-                                    image_url = f"{self.base_url}{image_url}"
-                        
-                        # Stock status - check for "in stock" indicator
-                        stock_status = 'In Stock'  # Assume in stock if listed
-                        stock_elem = item.find(string=lambda x: x and ('out of stock' in x.lower() or 'sold out' in x.lower()) if x else False)
-                        if stock_elem:
-                            stock_status = 'Out of Stock'
-                        
-                        standardized_product = self.get_standardized_product(
-                            product_id='N/A',
-                            sku='N/A',
-                            title=title,
-                            brand='Giga Energy',
-                            wattage=kva,  # Use KVA instead of wattage for transformers
-                            efficiency='N/A',
-                            price=price,
-                            compare_price=0,
-                            stock_status=stock_status,
-                            inventory_qty='N/A',
-                            shipping_cost='Contact for Quote',
-                            product_url=product_url,
-                            image_url=image_url,
-                            specs={
-                                'product_type': 'Transformer',
-                                'kva': kva if kva != 'N/A' else None
-                            }
-                        )
-
-                        all_products.append(standardized_product)
-                        found_products_on_page += 1
-
-                    except Exception as e:
-                        print(f"      ⚠️ Error parsing product: {e}")
+                    product_url = item.get('href', '')
+                    if not product_url or product_url == '#':
                         continue
+                        
+                    if not product_url.startswith('http'):
+                        product_url = f"{self.base_url}{product_url}"
+                    
+                    # Only add unique URLs
+                    if product_url not in product_urls and '/shop/' in product_url:
+                        product_urls.add(product_url)
+                        found_new = True
 
-                if found_products_on_page == 0:
-                    # No new products found on this page
-                    print(f"    ✅ Completed scraping: {len(all_products)} products")
+                if not found_new:
+                    print(f"    ✅ Completed URL collection: {len(product_urls)} unique products")
                     break
 
                 page += 1
-                time.sleep(2)  # Be respectful with scraping
+                time.sleep(1)
 
             except Exception as e:
                 print(f"    ❌ Error on page {page}: {e}")
                 break
+        
+        # Step 2: Scrape details from each product page
+        print(f"  📋 Scraping details for {len(product_urls)} products...")
+        for i, product_url in enumerate(product_urls, 1):
+            try:
+                print(f"    🔍 Product {i}/{len(product_urls)}...", end='\r')
+                
+                details = self.scrape_product_details(product_url)
+                if not details:
+                    continue
+                
+                # Create standardized product
+                standardized_product = self.get_standardized_product(
+                    product_id='N/A',
+                    sku='N/A',
+                    title=details['title'],
+                    brand='Giga Energy',
+                    wattage=details['kva'],
+                    efficiency='N/A',
+                    price=details['price'],
+                    compare_price=0,
+                    stock_status='In Stock',
+                    inventory_qty='N/A',
+                    shipping_cost='Contact for Quote',
+                    product_url=product_url,
+                    image_url=details['image_url'],
+                    description=details['description'],
+                    specs={
+                        'product_type': 'Transformer',
+                        'kva': details['kva'],
+                        'primary_voltage': details['primary_voltage'],
+                        'secondary_voltage': details['secondary_voltage']
+                    }
+                )
 
+                all_products.append(standardized_product)
+                time.sleep(1.5)  # Be respectful with scraping
+
+            except Exception as e:
+                print(f"\n      ⚠️ Error scraping {product_url}: {e}")
+                continue
+        
+        print(f"\n    ✅ Successfully scraped {len(all_products)} products with full details")
         return all_products
 
 
@@ -162,3 +219,11 @@ if __name__ == "__main__":
     scraper = GigaEnergyScraper()
     products = scraper.run()
     print(f"\nScraped {len(products)} products")
+    if products:
+        print("\nSample product:")
+        p = products[0]
+        print(f"  Title: {p.get('title')}")
+        print(f"  Price: ${p.get('price', 0):,.2f}")
+        print(f"  KVA: {p.get('wattage')}")
+        print(f"  Primary Voltage: {p.get('specs', {}).get('primary_voltage')}")
+        print(f"  Secondary Voltage: {p.get('specs', {}).get('secondary_voltage')}")

@@ -97,9 +97,11 @@ All settings are controlled via environment variables:
    - **Transformers (with KVA ratings)** ✅ NEW!
    - Balance of System (BOS) components
 
-3. **Enhanced Google Sheets Output**: 19 comprehensive columns with business intelligence
+3. **Enhanced Google Sheets Output**: 21 comprehensive columns with business intelligence
    - **Basic Info**: Distributor, Category, Product Title, Brand, SKU
-   - **Specifications**: Wattage/KVA (supports both solar panels and transformers), Efficiency
+   - **Power Specifications**: Wattage/KVA (supports both solar panels and transformers)
+   - **Voltage Specifications**: Primary Voltage, Secondary Voltage (for transformers) ⚡ NEW!
+   - **Performance**: Efficiency
    - **Bulk Pricing**: Quantity, Total Price, Price Per Unit
    - **Pricing Info**: Compare Price, Discount %
    - **Availability**: Stock Status, Inventory Qty, Shipping Cost
@@ -107,6 +109,7 @@ All settings are controlled via environment variables:
    - **Metadata**: Product ID, Last Updated
    - **Auto-categorization**: Products automatically categorized into 9 types (Solar Panel, Inverter, Battery/Storage, Charge Controller, Racking/Mounting, BOS/Electrical, **Transformer**, **Switch**, Other)
    - **KVA support**: Transformers show KVA ratings instead of Wattage
+   - **Transformer voltages**: Primary and secondary voltage specs (e.g., "20780V D to 480V Y/277V")
    - **Bulk detection**: Automatically detects bulk quantities (pallets, cases, packs) and calculates per-unit pricing
    - **Column auto-resize**: Optimized readability with auto-resized columns
 
@@ -128,14 +131,21 @@ No current issues - all scrapers operational!
 None set yet - first time setup
 
 ## Recent Changes
-- 2025-11-15: Added Giga Energy transformer scraper
-  - Created new scraper for gigaenergy.com transformers (HTML scraping)
-  - Successfully scrapes 240 3-phase padmount transformers with KVA ratings
-  - Added KVA extraction method to base scraper (transformers use KVA instead of Wattage)
-  - Added Transformer and Switch categories to product categorization
-  - Updated system to handle 2,088 total products (up from 1,843)
+- 2025-11-15: Completed Giga Energy transformer scraper with full specifications
+  - **FIXED**: Scraper now extracts all critical data from individual product pages
+  - Successfully scrapes 240 3-phase padmount transformers with complete specifications:
+    - ✅ Prices (e.g., $97,407 for 1500 KVA transformer)
+    - ✅ KVA ratings (e.g., "1500 KVA")
+    - ✅ Primary voltages (e.g., "20780V D")
+    - ✅ Secondary voltages (e.g., "480V Y/277V")
+    - ✅ Product descriptions (full titles)
+    - ✅ Image URLs
+  - **Added 2 new columns** to Google Sheets: Primary Voltage, Secondary Voltage (21 columns total, up from 19)
+  - Enhanced voltage parsing from product titles with intelligent regex patterns
+  - Updated sheets_manager.py to display voltage specifications across all tabs
+  - System now handles 2,088 total products (up from 1,843)
   - Created Essential Parts scraper but disabled due to Cloudflare protection
-  - All 6 distributor tabs now in Google Sheets
+  - All 6 distributor tabs fully operational in Google Sheets
 - 2025-11-14: Enhanced Google Sheets with business intelligence features
   - Added Product Category column with auto-categorization (7 types: Solar Panel, Inverter, Battery/Storage, Charge Controller, Racking/Mounting, BOS/Electrical, Other)
   - Implemented smart quantity detection for bulk items (pallets, cases, packs)
