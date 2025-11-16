@@ -136,13 +136,17 @@ No current issues - all scrapers operational!
 None set yet - first time setup
 
 ## Recent Changes
-- 2025-11-16: **Enhanced Soligent scraper with Domestic Content tracking**
-  - **Added Domestic Content detection** - identifies products with US-made components via `custitem_dom_content` API field
-  - **Added 1 new column** to Google Sheets: Domestic Content (Yes/No) (24 columns total, up from 23)
-  - Tracks 1,861+ products with domestic content across Soligent catalog
-  - Prepared warehouse inventory extraction (requires SOLIGENT_USERNAME for authentication)
-    - Will extract detailed warehouse-specific stock levels (Arlington, TX: 273, Fontana, CA: 124, etc.)
-    - Ready to deploy once authentication credentials are provided
+- 2025-11-16: **Enhanced Soligent scraper with Domestic Content tracking** ✅ WORKING
+  - **Added Domestic Content detection** - identifies products with "Domestic Content" in product title OR via `custitem_dom_content` API field
+  - **Implementation**: Case-insensitive title check ("Domestic Content") + API flag detection
+  - **Output**: Google Sheets column shows "Yes" for products with domestic content, "No" for others
+  - **Status**: ✅ Implemented and tested (architect-reviewed)
+  - **Warehouse Inventory extraction**: ⏳ PENDING
+    - Goal: Extract detailed warehouse-specific stock levels from authenticated product pages
+    - Target: Parse inventory data like "Arlington, TX: 273, Fontana, CA: 124" from HTML element `<p class="inventory-display-quantity-availablev1">`
+    - Challenge: Requires NetSuite/SuiteCommerce web authentication (Token-Based Authentication for API, or web login for HTML scraping)
+    - Credentials available: SOLIGENT_USERNAME and SOLIGENT_PASSWORD (in secrets)
+    - Next step: Implement proper authentication to access warehouse inventory on product pages
 - 2025-11-16: **Added Soligent scraper** with comprehensive product data extraction
   - Successfully integrated Soligent (connect.soligent.net) using NetSuite SuiteCommerce API
   - **NO authentication required for basic data** - discovered public API endpoint for product info
