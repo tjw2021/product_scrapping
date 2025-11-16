@@ -10,6 +10,7 @@ from .us_solar_supplier_scraper import USSolarSupplierScraper
 from .solar_store_scraper import SolarStoreScraper
 from .giga_energy_scraper import GigaEnergyScraper
 from .essential_parts_scraper import EssentialPartsScraper
+from .soligent_scraper import SoligentScraper
 
 __all__ = [
     'SolarCellzScraper',
@@ -18,5 +19,6 @@ __all__ = [
     'USSolarSupplierScraper',
     'SolarStoreScraper',
     'GigaEnergyScraper',
-    'EssentialPartsScraper'
+    'EssentialPartsScraper',
+    'SoligentScraper'
 ]

@@ -10,7 +10,8 @@ from scrapers import (
     USSolarSupplierScraper,
     SolarStoreScraper,
     GigaEnergyScraper,
-    EssentialPartsScraper
+    EssentialPartsScraper,
+    SoligentScraper
 )
 from sheets_manager import SheetsManager
 from price_tracker import PriceTracker
@@ -39,7 +40,8 @@ class SolarInventorySystem:
             'us_solar_supplier': USSolarSupplierScraper(),
             'solar_store': SolarStoreScraper(),
             'giga_energy': GigaEnergyScraper(),
-            'essential_parts': EssentialPartsScraper()
+            'essential_parts': EssentialPartsScraper(),
+            'soligent': SoligentScraper()
         }
 
         # Filter based on config

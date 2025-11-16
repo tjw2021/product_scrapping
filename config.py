@@ -17,7 +17,7 @@ class Config:
     # Enable all working scrapers by default (essential_parts excluded due to Cloudflare protection)
     DISTRIBUTORS_TO_SCRAPE = os.environ.get(
         'DISTRIBUTORS_TO_SCRAPE',
-        'solar_cellz,alte,ressupply,us_solar_supplier,solar_store,giga_energy'
+        'solar_cellz,alte,ressupply,us_solar_supplier,solar_store,giga_energy,soligent'
     ).split(',')
 
     # Alert Settings
