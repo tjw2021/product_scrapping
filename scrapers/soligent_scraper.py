@@ -83,6 +83,56 @@ class SoligentScraper(BaseScraper):
             print(f"    ⚠️  Error fetching details for item {item_id}: {e}")
             return None
     
+    def _fetch_warehouse_inventory(self, product_url: str) -> Dict[str, int]:
+        """
+        Fetch warehouse-specific inventory from product page HTML
+        Args:
+            product_url: URL to product page
+        Returns:
+            Dictionary mapping warehouse locations to quantities
+        """
+        try:
+            response = self.session.get(product_url, timeout=15)
+            response.raise_for_status()
+            
+            soup = BeautifulSoup(response.text, 'html.parser')
+            
+            # Find the inventory display element
+            inventory_element = soup.find('p', class_='inventory-display-quantity-availablev1')
+            
+            if not inventory_element:
+                return {}
+            
+            # Get all text content after "Current Stock:"
+            inventory_text = inventory_element.get_text(separator='\n', strip=True)
+            
+            # Parse warehouse inventory
+            warehouse_inventory = {}
+            lines = inventory_text.split('\n')
+            
+            for line in lines:
+                line = line.strip()
+                # Skip "Current Stock:" header
+                if 'Current Stock:' in line or not line:
+                    continue
+                
+                # Parse format "Location: Quantity"
+                if ':' in line:
+                    parts = line.split(':', 1)
+                    if len(parts) == 2:
+                        location = parts[0].strip()
+                        try:
+                            quantity = int(parts[1].strip().replace(',', ''))
+                            warehouse_inventory[location] = quantity
+                        except ValueError:
+                            continue
+            
+            return warehouse_inventory
+            
+        except Exception as e:
+            # Don't print errors for every product to avoid log spam
+            return {}
+    
     def _parse_product(self, item: Dict) -> Optional[Dict]:
         """
         Parse product from API response
@@ -153,14 +203,15 @@ class SoligentScraper(BaseScraper):
             # Extract warehouse/location info
             location = item.get('location', item.get('custitem_location', 'N/A'))
             
-            # Build specs dictionary
+            # Build specs dictionary (warehouse inventory will be added during detail fetch)
             specs = {
                 'description': item.get('storedetaileddescription', title),
                 'manufacturer_part': sku,
                 'dimensions': dimensions,
                 'weight': str(weight) if weight and weight != 'N/A' else 'N/A',
                 'location': str(location) if location and location != 'N/A' else 'N/A',
-                'stock_description': stock_desc
+                'stock_description': stock_desc,
+                'warehouse_inventory': {}  # Will be populated later
             }
             
             return {
@@ -246,6 +297,36 @@ class SoligentScraper(BaseScraper):
                     break
             
             print(f"\n✅ Scraped {len(all_products)} total products from {self.distributor_name}")
+            
+            # Fetch detailed warehouse inventory for each product
+            print(f"\n📦 Fetching warehouse inventory for {len(all_products)} products...")
+            print(f"  ⚠️  This may take several minutes...")
+            
+            for idx, product in enumerate(all_products, 1):
+                if idx % 50 == 0 or idx == 1:
+                    print(f"  📍 Progress: {idx}/{len(all_products)} products...")
+                
+                product_url = product.get('product_url', '')
+                if product_url:
+                    warehouse_inv = self._fetch_warehouse_inventory(product_url)
+                    if warehouse_inv:
+                        product['specs']['warehouse_inventory'] = warehouse_inv
+                        
+                        # Calculate total inventory from warehouses
+                        total_qty = sum(warehouse_inv.values())
+                        product['inventory_qty'] = str(total_qty)
+                        
+                        # Format for location field (show all warehouses)
+                        location_str = "; ".join([f"{loc}: {qty}" for loc, qty in warehouse_inv.items()])
+                        product['specs']['location'] = location_str
+                    
+                    # Be respectful with rate limiting
+                    if idx % 10 == 0:
+                        time.sleep(2)
+                    else:
+                        time.sleep(0.5)
+            
+            print(f"  ✅ Completed warehouse inventory fetch")
             
             # Standardize all products
             standardized_products = []
