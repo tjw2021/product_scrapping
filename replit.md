@@ -7,9 +7,9 @@ This is a Python-based solar inventory scraper that automatically extracts produ
 Backend / CLI automation system (no web interface)
 
 ## Key Features
-- Scrapes 6 distributors: Solar Cellz USA, altE Store, RES Supply, US Solar Supplier, The Solar Store, and Giga Energy
+- Scrapes 7 distributors: Solar Cellz USA, altE Store, RES Supply, US Solar Supplier, The Solar Store, Giga Energy, and **Soligent**
 - Collects comprehensive products: solar panels, inverters (grid-tie/off-grid/hybrid), batteries, charge controllers, racking, BOS equipment, and **transformers**
-- Updates Google Sheets with product data (prices, availability, specs, KVA ratings for transformers)
+- Updates Google Sheets with product data (prices, availability, specs, KVA ratings for transformers, **warehouse locations, dimensions**)
 - Tracks price changes and sends email alerts
 - Can run on-demand or on a schedule (every 6 hours by default)
 
@@ -67,27 +67,29 @@ All settings are controlled via environment variables:
 - ✅ Python 3.11 installed
 - ✅ All dependencies installed  
 - ✅ Google Sheets integration fully configured and working
-- ✅ Code tested and working (scraped 2,088 products successfully)
+- ✅ Code tested and working (scraped 3,531 products successfully)
 - ✅ Data successfully transfers to Google Sheets
 - ✅ Scheduled workflow configured (runs every 6 hours)
-- ✅ All 6 scrapers working perfectly with multi-category support:
+- ✅ All 7 scrapers working perfectly with multi-category support:
   - Solar Cellz USA: 278 products (panels, inverters, storage accessories) ✅
   - altE Store: 106 products (panels, inverters, charge controllers) ✅
   - RES Supply: 14 solar panels (HTML scraping) ✅
   - US Solar Supplier: 1,007 products (inverters, panels) ✅
   - The Solar Store: 443 products (panels, inverters, batteries/accessories) ✅
-  - Giga Energy: 240 transformers (3-phase padmount with KVA ratings) ✅ NEW!
+  - Giga Energy: 240 transformers (3-phase padmount with KVA ratings) ✅
+  - **Soligent: 1,443 products (PV modules, inverters, batteries, BOS) via NetSuite API ✅ NEW!**
 - ⚠️ Email alerts not configured (optional)
 - ⚠️ Essential Parts scraper created but blocked by Cloudflare protection (not active)
 
 ## Working Features
-1. **Scraping**: Successfully scrapes 2,088 products from 6 distributors across multiple categories
+1. **Scraping**: Successfully scrapes 3,531 products from 7 distributors across multiple categories
    - **Solar Cellz USA**: 278 products (panels, inverters, storage accessories) via Shopify API
    - **altE Store**: 106 products (panels, off-grid/hybrid inverters, charge controllers) via Shopify API
    - **RES Supply**: 14 solar panels via HTML scraping
    - **US Solar Supplier**: 1,007 products (inverters, panels) via Shopify API
    - **The Solar Store**: 443 products (panels, inverters, batteries/accessories) via Shopify API
-   - **Giga Energy**: 240 transformers (3-phase padmount transformers with KVA ratings) via HTML scraping ✅ NEW!
+   - **Giga Energy**: 240 transformers (3-phase padmount transformers with KVA ratings) via HTML scraping
+   - **Soligent**: 1,443 products (PV modules, inverters, batteries, charge controllers, BOS) via NetSuite API ✅ NEW!
 
 2. **Product Categories**: Comprehensive coverage of electrical system components
    - Solar Panels
@@ -97,14 +99,16 @@ All settings are controlled via environment variables:
    - **Transformers (with KVA ratings)** ✅ NEW!
    - Balance of System (BOS) components
 
-3. **Enhanced Google Sheets Output**: 21 comprehensive columns with business intelligence
+3. **Enhanced Google Sheets Output**: 23 comprehensive columns with business intelligence
    - **Basic Info**: Distributor, Category, Product Title, Brand, SKU
    - **Power Specifications**: Wattage/KVA (supports both solar panels and transformers)
-   - **Voltage Specifications**: Primary Voltage, Secondary Voltage (for transformers) ⚡ NEW!
+   - **Voltage Specifications**: Primary Voltage, Secondary Voltage (for transformers)
    - **Performance**: Efficiency
    - **Bulk Pricing**: Quantity, Total Price, Price Per Unit
    - **Pricing Info**: Compare Price, Discount %
-   - **Availability**: Stock Status, Inventory Qty, Shipping Cost
+   - **Availability**: Stock Status, Inventory Qty
+   - **Warehouse Data**: Location/Warehouse, Product Dimensions ✅ NEW!
+   - **Shipping**: Shipping Cost
    - **Links**: Product URL, Image URL
    - **Metadata**: Product ID, Last Updated
    - **Auto-categorization**: Products automatically categorized into 9 types (Solar Panel, Inverter, Battery/Storage, Charge Controller, Racking/Mounting, BOS/Electrical, **Transformer**, **Switch**, Other)
@@ -114,7 +118,7 @@ All settings are controlled via environment variables:
    - **Column auto-resize**: Optimized readability with auto-resized columns
 
 4. **Google Sheets Tabs**:
-   - Individual distributor tabs (6 tabs total, including Giga Energy)
+   - Individual distributor tabs (7 tabs total, including Soligent)
    - Best Prices comparison tab
    - Summary statistics tab
 
@@ -131,6 +135,23 @@ No current issues - all scrapers operational!
 None set yet - first time setup
 
 ## Recent Changes
+- 2025-11-16: **Added Soligent scraper** with comprehensive product data extraction
+  - Successfully integrated Soligent (connect.soligent.net) using NetSuite SuiteCommerce API
+  - **NO authentication required** - discovered public API endpoint eliminates need for login credentials
+  - Scrapes 1,443 products across 39 pages (50 products per page)
+  - Product categories: PV modules, inverters, batteries, charge controllers, BOS components
+  - **Added 2 new columns** to Google Sheets: Location/Warehouse, Product Dimensions (23 columns total, up from 21)
+  - Enhanced data extraction includes:
+    - ✅ Product names and descriptions
+    - ✅ Pricing data (retail and sale prices)
+    - ✅ Inventory quantities per warehouse location
+    - ✅ Product dimensions (length x width x height)
+    - ✅ SKUs, brands, categories
+    - ✅ Product images and URLs
+  - Smart handling of API response variations (filters out list-type items that don't follow dict structure)
+  - System now handles 3,531 total products (up from 2,088)
+  - Registered in system configuration (main.py, config.py, scrapers/__init__.py)
+  - All 7 distributor tabs operational in Google Sheets
 - 2025-11-15: Completed Giga Energy transformer scraper with full specifications
   - **FIXED**: Scraper now extracts all critical data from individual product pages
   - Successfully scrapes 240 3-phase padmount transformers with complete specifications:
