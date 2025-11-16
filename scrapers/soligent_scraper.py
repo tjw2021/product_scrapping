@@ -151,6 +151,9 @@ class SoligentScraper(BaseScraper):
             item_id = str(item.get('internalid', item.get('itemid', 'N/A')))
             sku = item.get('custcol_sol_mfr_part_number', item.get('mpn', 'N/A'))
             
+            # Check for domestic content in title (products with domestic content have it in the name)
+            has_domestic_content_in_title = 'domestic content' in title.lower()
+            
             # Extract manufacturer/brand
             brand = item.get('custitem_sol_manufacturer_for_web', 'N/A')
             
@@ -200,8 +203,9 @@ class SoligentScraper(BaseScraper):
             dimensions = item.get('custitem_dimensions', 'N/A')
             weight = item.get('weight', 'N/A')
             
-            # Extract domestic content flag
-            domestic_content = item.get('custitem_dom_content', False)
+            # Extract domestic content flag (check both API field and title)
+            domestic_content_api = item.get('custitem_dom_content', False)
+            domestic_content = domestic_content_api or has_domestic_content_in_title
             domestic_content_str = 'Yes' if domestic_content else 'No'
             
             # Extract warehouse/location info
