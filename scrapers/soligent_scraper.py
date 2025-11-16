@@ -200,6 +200,10 @@ class SoligentScraper(BaseScraper):
             dimensions = item.get('custitem_dimensions', 'N/A')
             weight = item.get('weight', 'N/A')
             
+            # Extract domestic content flag
+            domestic_content = item.get('custitem_dom_content', False)
+            domestic_content_str = 'Yes' if domestic_content else 'No'
+            
             # Extract warehouse/location info
             location = item.get('location', item.get('custitem_location', 'N/A'))
             
@@ -211,6 +215,7 @@ class SoligentScraper(BaseScraper):
                 'weight': str(weight) if weight and weight != 'N/A' else 'N/A',
                 'location': str(location) if location and location != 'N/A' else 'N/A',
                 'stock_description': stock_desc,
+                'domestic_content': domestic_content_str,
                 'warehouse_inventory': {}  # Will be populated later
             }
             
@@ -298,35 +303,46 @@ class SoligentScraper(BaseScraper):
             
             print(f"\n✅ Scraped {len(all_products)} total products from {self.distributor_name}")
             
-            # Fetch detailed warehouse inventory for each product
-            print(f"\n📦 Fetching warehouse inventory for {len(all_products)} products...")
-            print(f"  ⚠️  This may take several minutes...")
+            # TODO: Warehouse inventory fetching requires authentication
+            # To enable this feature, set SOLIGENT_USERNAME environment variable
+            soligent_username = os.environ.get('SOLIGENT_USERNAME', '')
+            soligent_password = os.environ.get('SOLIGENT_PASSWORD', '')
             
-            for idx, product in enumerate(all_products, 1):
-                if idx % 50 == 0 or idx == 1:
-                    print(f"  📍 Progress: {idx}/{len(all_products)} products...")
+            if soligent_username and soligent_password:
+                print(f"\n📦 Fetching warehouse inventory for {len(all_products)} products...")
+                print(f"  ⚠️  This may take several minutes...")
                 
-                product_url = product.get('product_url', '')
-                if product_url:
-                    warehouse_inv = self._fetch_warehouse_inventory(product_url)
-                    if warehouse_inv:
-                        product['specs']['warehouse_inventory'] = warehouse_inv
-                        
-                        # Calculate total inventory from warehouses
-                        total_qty = sum(warehouse_inv.values())
-                        product['inventory_qty'] = str(total_qty)
-                        
-                        # Format for location field (show all warehouses)
-                        location_str = "; ".join([f"{loc}: {qty}" for loc, qty in warehouse_inv.items()])
-                        product['specs']['location'] = location_str
+                # TODO: Implement login authentication here
+                # self._login(soligent_username, soligent_password)
+                
+                for idx, product in enumerate(all_products, 1):
+                    if idx % 50 == 0 or idx == 1:
+                        print(f"  📍 Progress: {idx}/{len(all_products)} products...")
                     
-                    # Be respectful with rate limiting
-                    if idx % 10 == 0:
-                        time.sleep(2)
-                    else:
-                        time.sleep(0.5)
-            
-            print(f"  ✅ Completed warehouse inventory fetch")
+                    product_url = product.get('product_url', '')
+                    if product_url:
+                        warehouse_inv = self._fetch_warehouse_inventory(product_url)
+                        if warehouse_inv:
+                            product['specs']['warehouse_inventory'] = warehouse_inv
+                            
+                            # Calculate total inventory from warehouses
+                            total_qty = sum(warehouse_inv.values())
+                            product['inventory_qty'] = str(total_qty)
+                            
+                            # Format for location field (show all warehouses)
+                            location_str = "; ".join([f"{loc}: {qty}" for loc, qty in warehouse_inv.items()])
+                            product['specs']['location'] = location_str
+                        
+                        # Be respectful with rate limiting
+                        if idx % 10 == 0:
+                            time.sleep(2)
+                        else:
+                            time.sleep(0.5)
+                
+                print(f"  ✅ Completed warehouse inventory fetch")
+            else:
+                print(f"\n⚠️  Warehouse inventory requires authentication")
+                print(f"  💡 Set SOLIGENT_USERNAME and SOLIGENT_PASSWORD to enable this feature")
             
             # Standardize all products
             standardized_products = []

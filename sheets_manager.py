@@ -138,7 +138,7 @@ class SheetsManager:
             worksheet = self.get_or_create_worksheet(distributor_name)
             worksheet.clear()
 
-            # Define headers with new columns (23 total)
+            # Define headers with new columns (24 total)
             headers = [
                 'Distributor',
                 'Category',
@@ -158,6 +158,7 @@ class SheetsManager:
                 'Inventory Qty',
                 'Location/Warehouse',
                 'Dimensions',
+                'Domestic Content',
                 'Shipping Cost',
                 'Product URL',
                 'Image URL',
@@ -185,9 +186,10 @@ class SheetsManager:
                 primary_voltage = product.get('specs', {}).get('primary_voltage', 'N/A')
                 secondary_voltage = product.get('specs', {}).get('secondary_voltage', 'N/A')
                 
-                # Get new fields: location and dimensions
+                # Get new fields: location, dimensions, and domestic content
                 location = product.get('specs', {}).get('location', 'N/A')
                 dimensions = product.get('specs', {}).get('dimensions', 'N/A')
+                domestic_content = product.get('specs', {}).get('domestic_content', 'N/A')
                 
                 row = [
                     product.get('distributor', 'N/A'),
@@ -208,6 +210,7 @@ class SheetsManager:
                     product.get('inventory_qty', 'N/A'),
                     location,
                     dimensions,
+                    domestic_content,
                     product.get('shipping_cost', 'N/A'),
                     product.get('product_url', 'N/A'),
                     product.get('image_url', 'N/A'),
@@ -219,8 +222,8 @@ class SheetsManager:
             # Update sheet with all data
             worksheet.update('A1', rows, value_input_option='USER_ENTERED')
 
-            # Format headers (now 23 columns: A to W)
-            worksheet.format('A1:W1', {
+            # Format headers (now 24 columns: A to X)
+            worksheet.format('A1:X1', {
                 "textFormat": {"bold": True},
                 "backgroundColor": {"red": 0.2, "green": 0.5, "blue": 0.8},
                 "textFormat": {"foregroundColor": {"red": 1, "green": 1, "blue": 1}}

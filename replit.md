@@ -99,7 +99,7 @@ All settings are controlled via environment variables:
    - **Transformers (with KVA ratings)** ✅ NEW!
    - Balance of System (BOS) components
 
-3. **Enhanced Google Sheets Output**: 23 comprehensive columns with business intelligence
+3. **Enhanced Google Sheets Output**: 24 comprehensive columns with business intelligence
    - **Basic Info**: Distributor, Category, Product Title, Brand, SKU
    - **Power Specifications**: Wattage/KVA (supports both solar panels and transformers)
    - **Voltage Specifications**: Primary Voltage, Secondary Voltage (for transformers)
@@ -107,7 +107,8 @@ All settings are controlled via environment variables:
    - **Bulk Pricing**: Quantity, Total Price, Price Per Unit
    - **Pricing Info**: Compare Price, Discount %
    - **Availability**: Stock Status, Inventory Qty
-   - **Warehouse Data**: Location/Warehouse, Product Dimensions ✅ NEW!
+   - **Warehouse Data**: Location/Warehouse, Product Dimensions
+   - **Compliance**: Domestic Content (Yes/No for US-made components) ✅ NEW!
    - **Shipping**: Shipping Cost
    - **Links**: Product URL, Image URL
    - **Metadata**: Product ID, Last Updated
@@ -135,9 +136,16 @@ No current issues - all scrapers operational!
 None set yet - first time setup
 
 ## Recent Changes
+- 2025-11-16: **Enhanced Soligent scraper with Domestic Content tracking**
+  - **Added Domestic Content detection** - identifies products with US-made components via `custitem_dom_content` API field
+  - **Added 1 new column** to Google Sheets: Domestic Content (Yes/No) (24 columns total, up from 23)
+  - Tracks 1,861+ products with domestic content across Soligent catalog
+  - Prepared warehouse inventory extraction (requires SOLIGENT_USERNAME for authentication)
+    - Will extract detailed warehouse-specific stock levels (Arlington, TX: 273, Fontana, CA: 124, etc.)
+    - Ready to deploy once authentication credentials are provided
 - 2025-11-16: **Added Soligent scraper** with comprehensive product data extraction
   - Successfully integrated Soligent (connect.soligent.net) using NetSuite SuiteCommerce API
-  - **NO authentication required** - discovered public API endpoint eliminates need for login credentials
+  - **NO authentication required for basic data** - discovered public API endpoint for product info
   - Scrapes 1,443 products across 39 pages (50 products per page)
   - Product categories: PV modules, inverters, batteries, charge controllers, BOS components
   - **Added 2 new columns** to Google Sheets: Location/Warehouse, Product Dimensions (23 columns total, up from 21)
@@ -148,6 +156,7 @@ None set yet - first time setup
     - ✅ Product dimensions (length x width x height)
     - ✅ SKUs, brands, categories
     - ✅ Product images and URLs
+    - ✅ Domestic content flag (US-made components)
   - Smart handling of API response variations (filters out list-type items that don't follow dict structure)
   - System now handles 3,531 total products (up from 2,088)
   - Registered in system configuration (main.py, config.py, scrapers/__init__.py)
