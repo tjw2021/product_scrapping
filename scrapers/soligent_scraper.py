@@ -18,14 +18,35 @@ except ImportError:
 
 class SoligentScraper(BaseScraper):
     """Scraper for Soligent (connect.soligent.net) using NetSuite API"""
-    
+
     BASE_URL = "https://connect.soligent.net"
     API_URL = f"{BASE_URL}/api/items"
+    CACHEABLE_API_URL = f"{BASE_URL}/api/cacheable/items"
     COMPANY_ID = "3510556"  # Found in page source
-    
+
+    # Mapping of location internal IDs to warehouse names
+    LOCATION_MAP = {
+        "123": "Fontana, CA",
+        "187": "Las Vegas, NV",
+        "220": "Sacramento, CA",
+        "244": "Arlington, TX",
+        "251": "Orlando, FL",
+        "278": "Tampa, FL",
+        "285": "Millstone, NJ",
+    }
+
     def __init__(self):
         super().__init__("Soligent")
         self.session = requests.Session()
+
+        # Get credentials from environment
+        username = os.environ.get('SOLIGENT_USERNAME', '')
+        password = os.environ.get('SOLIGENT_PASSWORD', '')
+
+        # Set up basic auth if credentials are available
+        if username and password:
+            self.session.auth = (username, password)
+
         self.session.headers.update({
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
             'Accept': 'application/json',
@@ -83,52 +104,52 @@ class SoligentScraper(BaseScraper):
             print(f"    ⚠️  Error fetching details for item {item_id}: {e}")
             return None
     
-    def _fetch_warehouse_inventory(self, product_url: str) -> Dict[str, int]:
+    def _fetch_warehouse_inventory(self, product_url_component: str) -> Dict[str, int]:
         """
-        Fetch warehouse-specific inventory from product page HTML
+        Fetch warehouse-specific inventory using the cacheable items API
         Args:
-            product_url: URL to product page
+            product_url_component: URL component/slug for the product
         Returns:
             Dictionary mapping warehouse locations to quantities
         """
         try:
-            response = self.session.get(product_url, timeout=15)
+            params = {
+                'c': self.COMPANY_ID,
+                'country': 'US',
+                'currency': 'USD',
+                'fieldset': 'details',
+                'include': '',
+                'language': 'en',
+                'n': '2',
+                'pricelevel': '5',
+                'url': product_url_component,
+                'use_pcv': 'T'
+            }
+
+            response = self.session.get(self.CACHEABLE_API_URL, params=params, timeout=15)
             response.raise_for_status()
-            
-            soup = BeautifulSoup(response.text, 'html.parser')
-            
-            # Find the inventory display element
-            inventory_element = soup.find('p', class_='inventory-display-quantity-availablev1')
-            
-            if not inventory_element:
-                return {}
-            
-            # Get all text content after "Current Stock:"
-            inventory_text = inventory_element.get_text(separator='\n', strip=True)
-            
-            # Parse warehouse inventory
+            data = response.json()
+
+            # Extract warehouse inventory from response
             warehouse_inventory = {}
-            lines = inventory_text.split('\n')
-            
-            for line in lines:
-                line = line.strip()
-                # Skip "Current Stock:" header
-                if 'Current Stock:' in line or not line:
-                    continue
-                
-                # Parse format "Location: Quantity"
-                if ':' in line:
-                    parts = line.split(':', 1)
-                    if len(parts) == 2:
-                        location = parts[0].strip()
-                        try:
-                            quantity = int(parts[1].strip().replace(',', ''))
-                            warehouse_inventory[location] = quantity
-                        except ValueError:
-                            continue
-            
+
+            if 'items' in data and data['items']:
+                item = data['items'][0]
+                qty_detail = item.get('quantityavailable_detail', {})
+                locations = qty_detail.get('locations', [])
+
+                for location in locations:
+                    loc_id = str(location.get('internalid', ''))
+                    qty = location.get('quantityavailable', 0)
+
+                    # Map location ID to warehouse name
+                    warehouse_name = self.LOCATION_MAP.get(loc_id, f"Location {loc_id}")
+
+                    if qty > 0:  # Only include warehouses with stock
+                        warehouse_inventory[warehouse_name] = int(qty)
+
             return warehouse_inventory
-            
+
         except Exception as e:
             # Don't print errors for every product to avoid log spam
             return {}
@@ -189,8 +210,9 @@ class SoligentScraper(BaseScraper):
                 image_url = first_image.get('url', '')
             
             # Build product URL
-            product_url = f"{self.BASE_URL}/item/{item_id}"
-            
+            url_component = item.get('urlcomponent', '')
+            product_url = f"{self.BASE_URL}/{url_component}" if url_component else f"{self.BASE_URL}/item/{item_id}"
+
             # Extract wattage from title or custom fields
             wattage = self.extract_wattage(title)
             if wattage == 'N/A':
@@ -234,6 +256,7 @@ class SoligentScraper(BaseScraper):
                 'stock_status': stock_status,
                 'inventory_qty': str(quantity_available) if quantity_available else 'N/A',
                 'product_url': product_url,
+                'url_component': url_component,  # For warehouse inventory API
                 'image_url': image_url,
                 'specs': specs
             }
@@ -322,21 +345,21 @@ class SoligentScraper(BaseScraper):
                 for idx, product in enumerate(all_products, 1):
                     if idx % 50 == 0 or idx == 1:
                         print(f"  📍 Progress: {idx}/{len(all_products)} products...")
-                    
-                    product_url = product.get('product_url', '')
-                    if product_url:
-                        warehouse_inv = self._fetch_warehouse_inventory(product_url)
+
+                    url_component = product.get('url_component', '')
+                    if url_component:
+                        warehouse_inv = self._fetch_warehouse_inventory(url_component)
                         if warehouse_inv:
                             product['specs']['warehouse_inventory'] = warehouse_inv
-                            
+
                             # Calculate total inventory from warehouses
                             total_qty = sum(warehouse_inv.values())
                             product['inventory_qty'] = str(total_qty)
-                            
+
                             # Format for location field (show all warehouses)
                             location_str = "; ".join([f"{loc}: {qty}" for loc, qty in warehouse_inv.items()])
                             product['specs']['location'] = location_str
-                        
+
                         # Be respectful with rate limiting
                         if idx % 10 == 0:
                             time.sleep(2)
