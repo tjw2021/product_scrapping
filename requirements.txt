@@ -17,3 +17,5 @@ webdriver-manager
 undetected-chromedriver
 selenium
 undetected-chromedriver
+selenium
+webdriver-manager
