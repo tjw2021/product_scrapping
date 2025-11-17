@@ -63,17 +63,20 @@ class SoligentScraper(BaseScraper):
         Returns:
             API response dictionary
         """
+        # NetSuite API uses offset-based pagination, not page numbers
+        offset = (page - 1) * page_size
+
         params = {
             'c': self.COMPANY_ID,
             'fieldset': 'search',  # Can also use 'details' for more info
             'include': 'facets',
             'n': str(page_size),
-            'page': str(page)
+            'offset': str(offset)  # Use offset instead of page for NetSuite API
         }
-        
+
         if category_filter:
             params['filter'] = category_filter
-        
+
         try:
             response = self.session.get(self.API_URL, params=params, timeout=15)
             response.raise_for_status()
