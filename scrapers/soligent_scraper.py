@@ -191,15 +191,23 @@ class SoligentScraper(BaseScraper):
             is_in_stock = item.get('isinstock', False)
             is_purchasable = item.get('ispurchasable', False)
             quantity_available = item.get('quantityavailable', 0)
-            
+
+            # Extract dropship and backorder info
+            is_dropship = item.get('isdropshipitem', False)
+            is_backorderable = item.get('isbackorderable', False)
+            stock_message = item.get('custitem_ns_sc_ext_id_stock_message', '').strip()
+            backorder_message = item.get('custitem_ns_sc_ext_id_bo_msg', '').strip()
+
             # Determine stock status - Soligent appears to set isinstock=False but items are still purchasable
-            if 'dropship' in stock_desc.lower():
+            if is_dropship or 'dropship' in stock_desc.lower():
                 stock_status = 'Dropship'
             elif stock_desc:
                 # Use the actual stock description from the site
                 stock_status = stock_desc
             elif is_in_stock or quantity_available > 0:
                 stock_status = 'In Stock'
+            elif is_backorderable:
+                stock_status = 'Backorder'
             elif is_purchasable:
                 stock_status = 'Available'
             else:
@@ -236,6 +244,16 @@ class SoligentScraper(BaseScraper):
             # Extract warehouse/location info
             location = item.get('location', item.get('custitem_location', 'N/A'))
             
+            # Combine stock and backorder messages for delivery date field
+            delivery_info = ''
+            if stock_message:
+                delivery_info = stock_message
+            elif backorder_message:
+                delivery_info = backorder_message
+            elif stock_desc and stock_desc != stock_status:
+                # If stock_desc has additional info beyond the status
+                delivery_info = stock_desc
+
             # Build specs dictionary (warehouse inventory will be added during detail fetch)
             specs = {
                 'description': item.get('storedetaileddescription', title),
@@ -245,6 +263,9 @@ class SoligentScraper(BaseScraper):
                 'location': str(location) if location and location != 'N/A' else 'N/A',
                 'stock_description': stock_desc,
                 'domestic_content': domestic_content_str,
+                'is_dropship': 'Yes' if is_dropship else 'No',
+                'is_backorderable': 'Yes' if is_backorderable else 'No',
+                'delivery_date_eta': delivery_info if delivery_info else 'N/A',
                 'warehouse_inventory': {}  # Will be populated later
             }
             
