@@ -18,14 +18,35 @@ except ImportError:
 
 class SoligentScraper(BaseScraper):
     """Scraper for Soligent (connect.soligent.net) using NetSuite API"""
-    
+
     BASE_URL = "https://connect.soligent.net"
     API_URL = f"{BASE_URL}/api/items"
+    CACHEABLE_API_URL = f"{BASE_URL}/api/cacheable/items"
     COMPANY_ID = "3510556"  # Found in page source
-    
+
+    # Mapping of location internal IDs to warehouse names
+    LOCATION_MAP = {
+        "123": "Fontana, CA",
+        "187": "Las Vegas, NV",
+        "220": "Sacramento, CA",
+        "244": "Arlington, TX",
+        "251": "Orlando, FL",
+        "278": "Tampa, FL",
+        "285": "Millstone, NJ",
+    }
+
     def __init__(self):
         super().__init__("Soligent")
         self.session = requests.Session()
+
+        # Get credentials from environment
+        username = os.environ.get('SOLIGENT_USERNAME', '')
+        password = os.environ.get('SOLIGENT_PASSWORD', '')
+
+        # Set up basic auth if credentials are available
+        if username and password:
+            self.session.auth = (username, password)
+
         self.session.headers.update({
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
             'Accept': 'application/json',
@@ -42,17 +63,20 @@ class SoligentScraper(BaseScraper):
         Returns:
             API response dictionary
         """
+        # NetSuite API uses offset-based pagination, not page numbers
+        offset = (page - 1) * page_size
+
         params = {
             'c': self.COMPANY_ID,
             'fieldset': 'search',  # Can also use 'details' for more info
             'include': 'facets',
             'n': str(page_size),
-            'page': str(page)
+            'offset': str(offset)  # Use offset instead of page for NetSuite API
         }
-        
+
         if category_filter:
             params['filter'] = category_filter
-        
+
         try:
             response = self.session.get(self.API_URL, params=params, timeout=15)
             response.raise_for_status()
@@ -83,52 +107,52 @@ class SoligentScraper(BaseScraper):
             print(f"    ⚠️  Error fetching details for item {item_id}: {e}")
             return None
     
-    def _fetch_warehouse_inventory(self, product_url: str) -> Dict[str, int]:
+    def _fetch_warehouse_inventory(self, product_url_component: str) -> Dict[str, int]:
         """
-        Fetch warehouse-specific inventory from product page HTML
+        Fetch warehouse-specific inventory using the cacheable items API
         Args:
-            product_url: URL to product page
+            product_url_component: URL component/slug for the product
         Returns:
             Dictionary mapping warehouse locations to quantities
         """
         try:
-            response = self.session.get(product_url, timeout=15)
+            params = {
+                'c': self.COMPANY_ID,
+                'country': 'US',
+                'currency': 'USD',
+                'fieldset': 'details',
+                'include': '',
+                'language': 'en',
+                'n': '2',
+                'pricelevel': '5',
+                'url': product_url_component,
+                'use_pcv': 'T'
+            }
+
+            response = self.session.get(self.CACHEABLE_API_URL, params=params, timeout=15)
             response.raise_for_status()
-            
-            soup = BeautifulSoup(response.text, 'html.parser')
-            
-            # Find the inventory display element
-            inventory_element = soup.find('p', class_='inventory-display-quantity-availablev1')
-            
-            if not inventory_element:
-                return {}
-            
-            # Get all text content after "Current Stock:"
-            inventory_text = inventory_element.get_text(separator='\n', strip=True)
-            
-            # Parse warehouse inventory
+            data = response.json()
+
+            # Extract warehouse inventory from response
             warehouse_inventory = {}
-            lines = inventory_text.split('\n')
-            
-            for line in lines:
-                line = line.strip()
-                # Skip "Current Stock:" header
-                if 'Current Stock:' in line or not line:
-                    continue
-                
-                # Parse format "Location: Quantity"
-                if ':' in line:
-                    parts = line.split(':', 1)
-                    if len(parts) == 2:
-                        location = parts[0].strip()
-                        try:
-                            quantity = int(parts[1].strip().replace(',', ''))
-                            warehouse_inventory[location] = quantity
-                        except ValueError:
-                            continue
-            
+
+            if 'items' in data and data['items']:
+                item = data['items'][0]
+                qty_detail = item.get('quantityavailable_detail', {})
+                locations = qty_detail.get('locations', [])
+
+                for location in locations:
+                    loc_id = str(location.get('internalid', ''))
+                    qty = location.get('quantityavailable', 0)
+
+                    # Map location ID to warehouse name
+                    warehouse_name = self.LOCATION_MAP.get(loc_id, f"Location {loc_id}")
+
+                    if qty > 0:  # Only include warehouses with stock
+                        warehouse_inventory[warehouse_name] = int(qty)
+
             return warehouse_inventory
-            
+
         except Exception as e:
             # Don't print errors for every product to avoid log spam
             return {}
@@ -167,15 +191,23 @@ class SoligentScraper(BaseScraper):
             is_in_stock = item.get('isinstock', False)
             is_purchasable = item.get('ispurchasable', False)
             quantity_available = item.get('quantityavailable', 0)
-            
+
+            # Extract dropship and backorder info
+            is_dropship = item.get('isdropshipitem', False)
+            is_backorderable = item.get('isbackorderable', False)
+            stock_message = item.get('custitem_ns_sc_ext_id_stock_message', '').strip()
+            backorder_message = item.get('custitem_ns_sc_ext_id_bo_msg', '').strip()
+
             # Determine stock status - Soligent appears to set isinstock=False but items are still purchasable
-            if 'dropship' in stock_desc.lower():
+            if is_dropship or 'dropship' in stock_desc.lower():
                 stock_status = 'Dropship'
             elif stock_desc:
                 # Use the actual stock description from the site
                 stock_status = stock_desc
             elif is_in_stock or quantity_available > 0:
                 stock_status = 'In Stock'
+            elif is_backorderable:
+                stock_status = 'Backorder'
             elif is_purchasable:
                 stock_status = 'Available'
             else:
@@ -189,8 +221,9 @@ class SoligentScraper(BaseScraper):
                 image_url = first_image.get('url', '')
             
             # Build product URL
-            product_url = f"{self.BASE_URL}/item/{item_id}"
-            
+            url_component = item.get('urlcomponent', '')
+            product_url = f"{self.BASE_URL}/{url_component}" if url_component else f"{self.BASE_URL}/item/{item_id}"
+
             # Extract wattage from title or custom fields
             wattage = self.extract_wattage(title)
             if wattage == 'N/A':
@@ -211,6 +244,16 @@ class SoligentScraper(BaseScraper):
             # Extract warehouse/location info
             location = item.get('location', item.get('custitem_location', 'N/A'))
             
+            # Combine stock and backorder messages for delivery date field
+            delivery_info = ''
+            if stock_message:
+                delivery_info = stock_message
+            elif backorder_message:
+                delivery_info = backorder_message
+            elif stock_desc and stock_desc != stock_status:
+                # If stock_desc has additional info beyond the status
+                delivery_info = stock_desc
+
             # Build specs dictionary (warehouse inventory will be added during detail fetch)
             specs = {
                 'description': item.get('storedetaileddescription', title),
@@ -220,6 +263,9 @@ class SoligentScraper(BaseScraper):
                 'location': str(location) if location and location != 'N/A' else 'N/A',
                 'stock_description': stock_desc,
                 'domestic_content': domestic_content_str,
+                'is_dropship': 'Yes' if is_dropship else 'No',
+                'is_backorderable': 'Yes' if is_backorderable else 'No',
+                'delivery_date_eta': delivery_info if delivery_info else 'N/A',
                 'warehouse_inventory': {}  # Will be populated later
             }
             
@@ -234,6 +280,7 @@ class SoligentScraper(BaseScraper):
                 'stock_status': stock_status,
                 'inventory_qty': str(quantity_available) if quantity_available else 'N/A',
                 'product_url': product_url,
+                'url_component': url_component,  # For warehouse inventory API
                 'image_url': image_url,
                 'specs': specs
             }
@@ -322,21 +369,21 @@ class SoligentScraper(BaseScraper):
                 for idx, product in enumerate(all_products, 1):
                     if idx % 50 == 0 or idx == 1:
                         print(f"  📍 Progress: {idx}/{len(all_products)} products...")
-                    
-                    product_url = product.get('product_url', '')
-                    if product_url:
-                        warehouse_inv = self._fetch_warehouse_inventory(product_url)
+
+                    url_component = product.get('url_component', '')
+                    if url_component:
+                        warehouse_inv = self._fetch_warehouse_inventory(url_component)
                         if warehouse_inv:
                             product['specs']['warehouse_inventory'] = warehouse_inv
-                            
+
                             # Calculate total inventory from warehouses
                             total_qty = sum(warehouse_inv.values())
                             product['inventory_qty'] = str(total_qty)
-                            
+
                             # Format for location field (show all warehouses)
                             location_str = "; ".join([f"{loc}: {qty}" for loc, qty in warehouse_inv.items()])
                             product['specs']['location'] = location_str
-                        
+
                         # Be respectful with rate limiting
                         if idx % 10 == 0:
                             time.sleep(2)
