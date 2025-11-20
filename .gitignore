@@ -51,3 +51,12 @@ Thumbs.db
 
 # Logs
 *.log
+
+# Generated output files
+output/
+spec_sheets/
+test_spec_sheets/
+
+# Test output files
+test_*.xlsx
+*_test_output.xlsx

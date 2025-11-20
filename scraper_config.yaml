@@ -1,0 +1,138 @@
+# Solar Equipment Scraper Configuration
+
+# Distributor Selection
+# Enable/disable specific distributors
+distributors:
+  solar_cellz:
+    enabled: true
+    name: "Solar Cellz USA"
+    type: "shopify"
+    url: "https://shop.solarcellzusa.com"
+
+  soligent:
+    enabled: true
+    name: "Soligent"
+    type: "netsuite_api"
+    url: "https://connect.soligent.net"
+    requires_auth: true
+
+  giga_energy:
+    enabled: true
+    name: "Giga Energy"
+    type: "html"
+    url: "https://www.gigaenergy.com"
+
+  alte:
+    enabled: true
+    name: "altE Store"
+    type: "shopify"
+    url: "https://www.altestore.com"
+
+  ressupply:
+    enabled: true
+    name: "Ressupply"
+    type: "shopify"
+    url: "https://ressupply.com"
+
+  us_solar_supplier:
+    enabled: true
+    name: "US Solar Supplier"
+    type: "shopify"
+    url: "https://www.ussolarsupplier.com"
+
+  solar_store:
+    enabled: true
+    name: "The Solar Store"
+    type: "shopify"
+    url: "https://thesolarstore.com"
+
+  essential_parts:
+    enabled: false  # Requires Cloudflare bypass
+    name: "Essential Parts"
+    type: "html_cloudflare"
+    url: "https://www.essentialparts.com"
+
+# AVL Configuration
+avl:
+  enabled: true
+  thrive_file: "THRIVE_AVL.xlsx"
+  goodleap_file: "GOODLEAP_AVL.xlsx"
+
+# Spec Sheet Download Configuration
+spec_sheets:
+  enabled: false  # Set to true to download spec sheets
+  output_directory: "spec_sheets"
+  max_pdfs_per_product: 3
+  delay_between_downloads: 1.0  # seconds
+  timeout: 30  # seconds
+
+# Output Configuration
+output:
+  # Excel export settings
+  excel:
+    enabled: true
+    directory: "./output"
+    filename_pattern: "solar_equipment_database_{timestamp}.xlsx"
+    include_summary_sheet: true
+    include_domestic_only_sheet: true
+    include_all_products_sheet: true
+
+  # Google Sheets settings (optional)
+  google_sheets:
+    enabled: false
+    sheet_name: "Solar Inventory Database"
+    create_comparison_tab: true
+    create_summary_tab: true
+
+# Product Filters
+filters:
+  # Minimum price filter (exclude products below this price)
+  min_price: 0
+
+  # Maximum price filter (exclude products above this price, 0 = no limit)
+  max_price: 0
+
+  # Stock status filter (empty = all statuses)
+  stock_status: []  # e.g., ["In Stock", "Dropship"]
+
+  # Category filter (empty = all categories)
+  categories: []  # e.g., ["Solar Panel", "Inverter"]
+
+# Performance Settings
+performance:
+  # Number of concurrent scrapers to run
+  max_concurrent_scrapers: 4
+
+  # Request timeout in seconds
+  request_timeout: 30
+
+  # Retry attempts for failed requests
+  max_retries: 3
+
+  # Delay between requests (seconds)
+  request_delay: 1.0
+
+# Logging
+logging:
+  level: "INFO"  # DEBUG, INFO, WARNING, ERROR
+  log_to_file: true
+  log_file: "scraper.log"
+
+# Price Tracking
+price_tracking:
+  enabled: false
+  history_file: "price_history.json"
+
+# Email Alerts
+email_alerts:
+  enabled: false
+  smtp_server: "smtp.gmail.com"
+  smtp_port: 587
+  sender_email: "your-email@gmail.com"
+  sender_password: "your-app-password"
+  recipient_email: "recipient@example.com"
+
+  # Alert triggers
+  alert_on_price_drops: true
+  alert_on_new_products: false
+  alert_on_stock_changes: false
