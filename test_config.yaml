@@ -1,0 +1,70 @@
+# Test Configuration - Limited scrapers for quick testing
+
+distributors:
+  solar_cellz:
+    enabled: false
+    name: "Solar Cellz USA"
+
+  soligent:
+    enabled: true  # Enable for testing
+    name: "Soligent"
+
+  giga_energy:
+    enabled: false
+    name: "Giga Energy"
+
+  alte:
+    enabled: false
+    name: "altE Store"
+
+  ressupply:
+    enabled: false
+    name: "Ressupply"
+
+  us_solar_supplier:
+    enabled: false
+    name: "US Solar Supplier"
+
+  solar_store:
+    enabled: false
+    name: "The Solar Store"
+
+  essential_parts:
+    enabled: false
+    name: "Essential Parts"
+
+avl:
+  enabled: true
+  thrive_file: "THRIVE_AVL.xlsx"
+  goodleap_file: "GOODLEAP_AVL.xlsx"
+
+spec_sheets:
+  enabled: false
+  output_directory: "spec_sheets"
+  max_pdfs_per_product: 3
+  delay_between_downloads: 1.0
+
+output:
+  excel:
+    enabled: true
+    directory: "./output"
+    filename_pattern: "test_solar_equipment_{timestamp}.xlsx"
+    include_summary_sheet: true
+    include_domestic_only_sheet: true
+    include_all_products_sheet: true
+
+filters:
+  min_price: 0
+  max_price: 0
+  stock_status: []
+  categories: []
+
+performance:
+  max_concurrent_scrapers: 4
+  request_timeout: 30
+  max_retries: 3
+  request_delay: 1.0
+
+logging:
+  level: "INFO"
+  log_to_file: false

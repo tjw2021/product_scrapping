@@ -15,7 +15,13 @@ google-auth
 selenium
 webdriver-manager
 undetected-chromedriver
-selenium
-undetected-chromedriver
-selenium
-webdriver-manager
+
+# Excel and Data Processing
+pandas==2.1.4
+openpyxl==3.1.2
+
+# Configuration
+pyyaml==6.0.1
+
+# Progress bars
+tqdm==4.66.1
