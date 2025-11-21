@@ -25,3 +25,6 @@ pyyaml==6.0.1
 
 # Progress bars
 tqdm==4.66.1
+
+# PDF Generation
+reportlab==4.0.7
