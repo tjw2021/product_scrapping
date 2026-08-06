@@ -86,6 +86,183 @@ class BaseScraper(ABC):
                 time.sleep(2 ** attempt)  # Exponential backoff
         return None
 
+    # ------------------------------------------------------------------
+    # Shopify full-catalog crawling
+    # ------------------------------------------------------------------
+    def scrape_shopify_store(
+        self,
+        base_url: str,
+        shipping_cost: str = 'Calculated at Checkout',
+        max_pages: int = 200,
+    ) -> List[Dict]:
+        """
+        Scrape the ENTIRE catalog of a Shopify store.
+
+        Uses the store-wide ``/products.json`` endpoint (every product across
+        every collection), paginated 250 at a time. If that endpoint is
+        unavailable/empty, falls back to enumerating ``/collections.json`` and
+        scraping each collection.
+
+        This replaces the old approach of hard-coding a short list of a few
+        collection handles per store, which silently returned 0 products
+        whenever a handle was wrong and only ever captured a small slice of the
+        catalog even when the handles were right.
+        """
+        products: List[Dict] = []
+        seen_ids = set()
+        page = 1
+
+        print(f"  🛒 Crawling full Shopify catalog: {base_url}")
+
+        while page <= max_pages:
+            page_products = self._shopify_products_page(
+                f"{base_url}/products.json?limit=250&page={page}"
+            )
+
+            if page_products is None:
+                # Endpoint unavailable (404/blocked/non-JSON).
+                if page == 1:
+                    print("  ⚠️  Store-wide /products.json unavailable; trying per-collection crawl")
+                    return self._scrape_all_shopify_collections(base_url, shipping_cost, max_pages)
+                break
+
+            if not page_products:
+                break
+
+            for product in page_products:
+                pid = product.get('id')
+                if pid in seen_ids:
+                    continue
+                seen_ids.add(pid)
+                products.extend(
+                    self._standardize_shopify_product(product, base_url, shipping_cost)
+                )
+
+            print(f"    📄 page {page}: {len(seen_ids)} products / {len(products)} variant rows")
+            page += 1
+            time.sleep(0.5)
+
+        if not products:
+            print("  ⚠️  No products via store-wide endpoint; trying per-collection crawl")
+            return self._scrape_all_shopify_collections(base_url, shipping_cost, max_pages)
+
+        print(f"  ✅ {len(products)} variant rows across {len(seen_ids)} products (store-wide)")
+        return products
+
+    def _scrape_all_shopify_collections(
+        self,
+        base_url: str,
+        shipping_cost: str,
+        max_pages: int = 200,
+    ) -> List[Dict]:
+        """
+        Fallback: enumerate every collection via /collections.json and scrape
+        each one. Used when a store disables the store-wide /products.json feed
+        but still exposes per-collection JSON.
+        """
+        resp = self.make_request(f"{base_url}/collections.json?limit=250")
+        if not resp:
+            print(f"  ❌ /collections.json unavailable for {base_url} — this store is likely not a "
+                  f"standard Shopify site and needs a dedicated scraper.")
+            return []
+
+        try:
+            collections = resp.json().get('collections', [])
+        except Exception:
+            print(f"  ❌ /collections.json returned non-JSON for {base_url} — needs a dedicated scraper.")
+            return []
+
+        products: List[Dict] = []
+        seen_ids = set()
+
+        for col in collections:
+            handle = col.get('handle')
+            if not handle:
+                continue
+            page = 1
+            while page <= max_pages:
+                page_products = self._shopify_products_page(
+                    f"{base_url}/collections/{handle}/products.json?limit=250&page={page}"
+                )
+                if not page_products:
+                    break
+                for product in page_products:
+                    pid = product.get('id')
+                    if pid in seen_ids:
+                        continue
+                    seen_ids.add(pid)
+                    products.extend(
+                        self._standardize_shopify_product(
+                            product, base_url, shipping_cost, collection_name=handle
+                        )
+                    )
+                page += 1
+                time.sleep(0.3)
+
+        print(f"  ✅ {len(products)} variant rows across {len(seen_ids)} products "
+              f"({len(collections)} collections)")
+        return products
+
+    def _shopify_products_page(self, url: str) -> Optional[List[Dict]]:
+        """
+        Fetch one Shopify products JSON page. Returns a list of products, an
+        empty list at the end of pagination, or None if the endpoint is
+        unavailable / returns non-JSON.
+        """
+        response = self.make_request(url)
+        if not response:
+            return None
+        try:
+            return response.json().get('products', [])
+        except (ValueError, AttributeError):
+            return None
+
+    def _standardize_shopify_product(
+        self,
+        product: Dict,
+        base_url: str,
+        shipping_cost: str,
+        collection_name: Optional[str] = None,
+    ) -> List[Dict]:
+        """Convert one Shopify product (with its variants) into standardized rows."""
+        rows: List[Dict] = []
+        title = product.get('title', 'N/A')
+        images = product.get('images') or []
+        image_url = images[0].get('src', 'N/A') if images else 'N/A'
+        tags = product.get('tags', [])
+        tags_str = ', '.join(tags) if isinstance(tags, list) else str(tags)
+
+        for variant in product.get('variants', [{}]):
+            specs = {
+                'product_type': product.get('product_type', 'N/A'),
+                'tags': tags_str,
+                'weight': variant.get('weight', 'N/A'),
+                'weight_unit': variant.get('weight_unit', 'N/A'),
+            }
+            if collection_name:
+                specs['collection'] = collection_name
+
+            compare_at = variant.get('compare_at_price')
+            rows.append(
+                self.get_standardized_product(
+                    product_id=str(product.get('id', 'N/A')),
+                    sku=variant.get('sku', 'N/A'),
+                    title=title,
+                    brand=product.get('vendor', 'N/A'),
+                    wattage=self.extract_wattage(title),
+                    efficiency=self.extract_efficiency(title, {}),
+                    price=float(variant.get('price', 0) or 0),
+                    compare_price=float(compare_at) if compare_at else 0,
+                    stock_status='In Stock' if variant.get('available') else 'Out of Stock',
+                    inventory_qty=variant.get('inventory_quantity', 'N/A'),
+                    shipping_cost=shipping_cost,
+                    product_url=f"{base_url}/products/{product.get('handle', '')}",
+                    image_url=image_url,
+                    specs=specs,
+                )
+            )
+        return rows
+
     def extract_wattage(self, title: str) -> str:
         """Extract wattage from product title"""
         import re
